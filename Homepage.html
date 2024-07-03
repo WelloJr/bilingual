@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Multi-Language Website</title>
+    <link href="bootstrap/bootstrap.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Oxygen:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <nav id="header-nav" class="navbar navbar-expand-lg navbar-dark">
+            <div class="container d-flex align-items-center justify-content-between">
+                <a class="navbar-brand" href="homepage.html">My Website</a>
+                <div class="flex-grow-1"></div>
+                <select id="language-switcher">
+                    <option value="en">English</option>
+                    <option value="ar">Arabic</option>
+                </select>
+            </div>
+        </nav>
+    </header>
+    <!-- English Content -->
+    <div id="content-en">
+        <h1>Welcome</h1>
+        <p>This is an example website in English.</p> <br>
+        <p>This is a test from Abdullah to see if it works.</p>
+        <p>Same HTML page and two different languages.</p>
+        <p>When you press the button the language change.</p>
+    </div>
+    <!-- Arabic Content -->
+    <div id="content-ar" style="display:none;">
+        <h1>مرحبًا</h1>
+        <p>هذا مثال على موقع ويب باللغة العربية.</p> <br>
+        <p>هذه تجربة بسيطة</p>
+        <p>بدون تغير الصفحات مجرد تغيير فى طريقة العرض</p>
+        <p>عندما تضغط على زر تغيير اللغة سيحدث التغيير</p>
+    </div>
+
+    <script src="bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

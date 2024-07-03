@@ -1,0 +1,94 @@
+/* General Styles */
+body {
+    font-family: 'Oxygen', sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* Header and Navbar */
+header {
+    background-color: #343a40;
+    padding: 10px 0;
+}
+
+.navbar {
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+.navbar-brand {
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.5rem;
+    margin-right: auto; /* Ensure logo stays on the left */
+}
+
+.navbar-brand:hover {
+    color: #f8f9fa;
+}
+
+.navbar-toggler {
+    border: 2px solid #dc3545;
+}
+
+#language-switcher {
+    margin-left: 20px; /* Ensure button stays on the right */
+    padding: 8px 15px;
+    border-radius: 5px;
+    border: 2px solid #dc3545;
+    background-color: #dc3545;
+    color: #fff;
+    font-size: 1rem;
+}
+
+#language-switcher option {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+/* Content */
+h1 {
+    color: #343a40;
+    text-align: center;
+    margin-top: 20px;
+    font-size: 3rem;
+}
+
+p {
+    margin: 15px 0;
+    font-size: 1.2rem;
+    text-align: justify;
+    color: #555;
+}
+
+#content-en, #content-ar {
+    padding: 30px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+/* RTL Styles */
+[dir="rtl"] .navbar {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .navbar-brand {
+    margin-right: auto; /* Ensure logo stays on the left in RTL */
+}
+
+[dir="rtl"] #language-switcher {
+    margin-left: 20px; /* Ensure button stays on the right in RTL */
+    margin-right: 0;
+}
