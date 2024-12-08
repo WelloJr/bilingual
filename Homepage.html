@@ -1,37 +1,36 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
 
-public class TFReducer extends Reducer<Text, Text, Text, Text> {
+public class IDFMapper extends Mapper<Object, Text, Text, Text> {
 
-    private Text result = new Text();
+    private Text term = new Text();
+    private Text docId = new Text();
 
     @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        Map<String, Integer> docCountMap = new HashMap<>();
+    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        String line = value.toString().trim();
+        String[] parts = line.split("\\s+", 2);
+        String termText = parts[0];  // The term (e.g., angels)
+        String docData = parts[1];
 
-        // Loop through all the values (docId:positions)
-        for (Text val : values) {
-            String[] docAndPosition = val.toString().split(":");
-            String docId = docAndPosition[0];  // Extract the document ID
-
-            // Increment the frequency of the term in the current document
-            docCountMap.put(docId, docCountMap.getOrDefault(docId, 0) + 1);
+        // Use a set to count unique document IDs
+        HashSet<String> uniqueDocs = new HashSet<>();
+        String[] docs = docData.split(";");
+        for (String doc : docs) {
+            String docIdPart = doc.split(":")[0].trim();
+            uniqueDocs.add(docIdPart);
         }
 
-        // Build the result string
-        StringBuilder output = new StringBuilder();
-        for (Map.Entry<String, Integer> entry : docCountMap.entrySet()) {
-            output.append(entry.getKey()).append(": ").append(entry.getValue()).append(" ; ");
+        // Emit the term and document IDs to count document frequency
+        for (String uniqueDoc : uniqueDocs) {
+            term.set(termText);
+            docId.set(uniqueDoc);
+            context.write(term, docId);  // Emit term and docId
         }
-
-        // Write the output in the desired format
-        result.set(output.toString().trim());
-        context.write(key, result);
     }
 }
