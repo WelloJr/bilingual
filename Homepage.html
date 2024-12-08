@@ -1,34 +1,39 @@
 package part2;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-import java.io.IOException;
+public class PartTwoDriver {
 
-public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "TF-IDF Calculation");
 
-    private Text result = new Text();
+        job.setJarByClass(PartTwoDriver.class);
 
-    @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        double tf = 0;
-        double idf = 0;
+        job.setMapperClass(TFMapper.class);
+        job.setReducerClass(TFReducer.class);
 
-        // Extract TF and IDF from the values
-        for (Text val : values) {
-            String[] valueParts = val.toString().split(":");
-            if (valueParts[0].equals("TF")) {
-                tf = Double.parseDouble(valueParts[1]);
-            } else if (valueParts[0].equals("IDF")) {
-                idf = Double.parseDouble(valueParts[1]);
-            }
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+
+        // Set input and output paths
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        // Cleanup if output exists
+        FileSystem fs = FileSystem.get(conf);
+        Path outputPath = new Path(args[1]);
+        if (fs.exists(outputPath)) {
+            fs.delete(outputPath, true);
         }
 
-        // Calculate TF-IDF: (1 + log(TF)) * IDF
-        double tfidf = (1 + Math.log10(tf)) * idf;
-
-        // Write the TF-IDF result
-        result.set(String.valueOf(tfidf));
-        context.write(key, result);
+        // Wait for job completion
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
