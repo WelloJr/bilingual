@@ -1,39 +1,41 @@
 package part2;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.Reducer;
 
-public class PartTwoDriver {
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-    public static void main(String[] args) throws Exception {
-        Configuration conf = new Configuration();
-        Job job = Job.getInstance(conf, "TF-IDF Calculation");
+public class TFReducer extends Reducer<Text, Text, Text, Text> {
 
-        job.setJarByClass(PartTwoDriver.class);
+    private Text result = new Text();
 
-        job.setMapperClass(TFMapper.class);
-        job.setReducerClass(TFReducer.class);
+    @Override
+    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        Map<String, Integer> docCountMap = new HashMap<>();
 
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
+        // Loop through all the values (docId:positions)
+        for (Text val : values) {
+            String[] docAndPosition = val.toString().split(":");
+            String docId = docAndPosition[0];  // Extract the document ID
 
-        // Set input and output paths
-        FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
-
-        // Cleanup if output exists
-        FileSystem fs = FileSystem.get(conf);
-        Path outputPath = new Path(args[1]);
-        if (fs.exists(outputPath)) {
-            fs.delete(outputPath, true);
+            // Check if the document ID already exists in the map, and update its count
+            if (docCountMap.containsKey(docId)) {
+                docCountMap.put(docId, docCountMap.get(docId) + 1);
+            } else {
+                docCountMap.put(docId, 1);  // Initialize the count for the document
+            }
         }
 
-        // Wait for job completion
-        System.exit(job.waitForCompletion(true) ? 0 : 1);
+        // Build the result string
+        StringBuilder output = new StringBuilder();
+        for (Map.Entry<String, Integer> entry : docCountMap.entrySet()) {
+            output.append(entry.getKey()).append(": ").append(entry.getValue()).append(" ; ");
+        }
+
+        // Write the output in the desired format
+        result.set(output.toString().trim());
+        context.write(key, result);
     }
 }
