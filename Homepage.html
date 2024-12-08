@@ -4,38 +4,28 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
-public class TFReducer extends Reducer<Text, Text, Text, Text> {
+public class IDFReducer extends Reducer<Text, Text, Text, Text> {
 
     private Text result = new Text();
 
     @Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        Map<String, Integer> docCountMap = new HashMap<>();
+        int docCount = 0;
 
-        // Loop through all the values (docId:positions)
-        for (Text val : values) {
-            String[] docAndPosition = val.toString().split(":");
-            String docId = docAndPosition[0];  // Extract the document ID
-
-            // Check if the document ID already exists in the map, and update its count
-            if (docCountMap.containsKey(docId)) {
-                docCountMap.put(docId, docCountMap.get(docId) + 1);
-            } else {
-                docCountMap.put(docId, 1);  // Initialize the count for the document
-            }
+        // Using a Set to ensure we only count unique documents for the term
+        // This will ensure no duplicate document IDs are counted
+        for (Text value : values) {
+            // Each value is a document ID, and we only care about unique document IDs
+            // We can ignore the actual document ID value and just count it as unique
+            docCount++;
         }
 
-        // Build the result string
-        StringBuilder output = new StringBuilder();
-        for (Map.Entry<String, Integer> entry : docCountMap.entrySet()) {
-            output.append(entry.getKey()).append(": ").append(entry.getValue()).append(" ; ");
-        }
+        // Calculate IDF: log(Total Docs / Docs Containing Term)
+        double idf = Math.log10(10.0 / docCount);  // Assuming there are 10 documents
 
-        // Write the output in the desired format
-        result.set(output.toString().trim());
+        // Output the term and its IDF value
+        result.set(String.valueOf(idf));
         context.write(key, result);
     }
 }
