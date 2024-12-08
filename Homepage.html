@@ -1,31 +1,45 @@
-Reducer TFIDF
+Driver
 package part2;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-import java.io.IOException;
+public class PartTwoDriver {
 
-public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
-    private Text result = new Text();
-
-    @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        double idf = 0.0;
-        StringBuilder output = new StringBuilder();
-
-        for (Text val : values) {
-            String[] docData = val.toString().split(";");
-            for (String doc : docData) {
-                String[] docParts = doc.split(":");
-                String docId = docParts[0];
-                int tf = Integer.parseInt(docParts[1]);
-                double tfIdf = (1 + Math.log10(tf)) * idf;
-                output.append(docId).append(": ").append(tfIdf).append("; ");
-            }
+    public static void main(String[] args) throws Exception {
+        // Check the arguments
+        if (args.length != 2) {
+            System.err.println("Usage: PartTwoDriver <input path> <output path>");
+            System.exit(-1);
         }
 
-        result.set(output.toString().trim());
-        context.write(key, result);
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "TF-IDF Calculation");
+
+        job.setJarByClass(PartTwoDriver.class);
+        job.setMapperClass(TFMapper.class);
+        job.setReducerClass(TFReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+
+        // Input and Output paths
+        FileInputFormat.addInputPath(job, new Path(args[0]));  // Input directory from Part One output
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));  // Output directory for TF, IDF, TF-IDF
+
+        // Cleanup if the output path exists
+        FileSystem fs = FileSystem.get(conf);
+        Path outputPath = new Path(args[1]);
+        if (fs.exists(outputPath)) {
+            fs.delete(outputPath, true);  // delete output if it exists
+        }
+
+        // Wait for job completion
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
