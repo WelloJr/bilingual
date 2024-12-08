@@ -4,6 +4,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
+import java.util.HashSet;
 
 public class IDFReducer extends Reducer<Text, Text, Text, Text> {
 
@@ -11,20 +12,20 @@ public class IDFReducer extends Reducer<Text, Text, Text, Text> {
 
     @Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        int docCount = 0;
+        // Use a Set to store unique document IDs
+        HashSet<String> uniqueDocs = new HashSet<>();
 
-        // Using a Set to ensure we only count unique documents for the term
-        // This will ensure no duplicate document IDs are counted
+        // Iterate through the values (docId) and add them to the Set
         for (Text value : values) {
-            // Each value is a document ID, and we only care about unique document IDs
-            // We can ignore the actual document ID value and just count it as unique
-            docCount++;
+            String docId = value.toString().trim(); // Document ID from the Mapper output
+            uniqueDocs.add(docId); // Only unique docIds will be added
         }
 
         // Calculate IDF: log(Total Docs / Docs Containing Term)
-        double idf = Math.log10(10.0 / docCount);  // Assuming there are 10 documents
+        int docCount = uniqueDocs.size();  // Number of documents containing the term
+        double idf = Math.log10(10.0 / docCount);  // Assuming there are 10 documents in total
 
-        // Output the term and its IDF value
+        // Write the term and its IDF value
         result.set(String.valueOf(idf));
         context.write(key, result);
     }
