@@ -1,36 +1,24 @@
-MapperTF 
+Reducer TF
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.StringTokenizer;
 
-public class TFMapper extends Mapper<Object, Text, Text, Text> {
-
-    private Text term = new Text();
-    private Text docAndCount = new Text();
+public class TFReducer extends Reducer<Text, Text, Text, Text> {
+    private Text result = new Text();
 
     @Override
-    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        // Parse the positional index line
-        String line = value.toString().trim();
-        if (line.startsWith("<") && line.endsWith(">")) {
-            String content = line.substring(1, line.length() - 1).trim();
-            String[] parts = content.split("\\s+", 2);
-            String termText = parts[0];
-            String docData = parts[1];
+    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        StringBuilder output = new StringBuilder();
 
-            // Extract docId and positions
-            String[] docs = docData.split(";");
-            for (String doc : docs) {
-                String docId = doc.split(":")[0].trim();
-                int count = doc.split(":")[1].split(",").length;
-                term.set(termText);
-                docAndCount.set(docId + ":" + count);
-                context.write(term, docAndCount);
-            }
+        for (Text val : values) {
+            output.append(val.toString()).append("; ");
         }
+
+        result.set(output.toString().trim());
+        context.write(key, result);
     }
 }
+
