@@ -1,46 +1,37 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.StringTokenizer;
+import java.util.HashMap;
+import java.util.Map;
 
-public class TFMapper extends Mapper<Object, Text, Text, Text> {
+public class TFReducer extends Reducer<Text, Text, Text, Text> {
 
-    private Text term = new Text();
-    private Text docAndCount = new Text();
+    private Text result = new Text();
 
     @Override
-    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        // Input format: angels < angels doc7: 1 ; doc9: 1 ; doc8: 1 ; >
-        String line = value.toString().trim();
+    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        Map<String, Integer> docCountMap = new HashMap<>();
 
-        // Remove the surrounding < > from the input data
-        if (line.startsWith("<") && line.endsWith(">")) {
-            line = line.substring(1, line.length() - 1).trim();
+        // Loop through all the values (docId:positions)
+        for (Text val : values) {
+            String[] docAndPosition = val.toString().split(":");
+            String docId = docAndPosition[0];  // Extract the document ID
+
+            // Increment the frequency of the term in the current document
+            docCountMap.put(docId, docCountMap.getOrDefault(docId, 0) + 1);
         }
 
-        // Split the line into term and doc data
-        String[] parts = line.split(" ", 2);
-        String termText = parts[0];  // The term (e.g., angels)
-        String docData = parts[1].split(";")[0].trim();  // Document data without the semicolon
-
-        // Tokenize the document data to get docId and positions
-        StringTokenizer tokenizer = new StringTokenizer(docData);
-        while (tokenizer.hasMoreTokens()) {
-            String token = tokenizer.nextToken();
-            String[] docAndPos = token.split(":");
-
-            if (docAndPos.length == 2) {
-                String docId = docAndPos[0];  // Document ID (e.g., doc7)
-                String positions = docAndPos[1];  // Positions (e.g., 1, 4, 7)
-
-                // Emit the term as key and docId:positions as value
-                term.set(termText);
-                docAndCount.set(docId + ":" + positions);
-                context.write(term, docAndCount);  // Emit the key-value pair
-            }
+        // Build the result string
+        StringBuilder output = new StringBuilder();
+        for (Map.Entry<String, Integer> entry : docCountMap.entrySet()) {
+            output.append(entry.getKey()).append(": ").append(entry.getValue()).append(" ; ");
         }
+
+        // Write the output in the desired format
+        result.set(output.toString().trim());
+        context.write(key, result);
     }
 }
