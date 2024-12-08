@@ -1,36 +1,28 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.HashSet;
 
-public class IDFMapper extends Mapper<Object, Text, Text, Text> {
+public class IDFReducer extends Reducer<Text, Text, Text, Text> {
 
-    private Text term = new Text();
-    private Text docId = new Text();
+    private Text result = new Text();
 
     @Override
-    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        String line = value.toString().trim();
-        String[] parts = line.split("\\s+", 2);
-        String termText = parts[0];  // The term (e.g., angels)
-        String docData = parts[1];
+    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        int docCount = 0;
 
-        // Use a set to count unique document IDs
-        HashSet<String> uniqueDocs = new HashSet<>();
-        String[] docs = docData.split(";");
-        for (String doc : docs) {
-            String docIdPart = doc.split(":")[0].trim();
-            uniqueDocs.add(docIdPart);
+        // Count the number of documents containing the term
+        for (Text ignored : values) {
+            docCount++;
         }
 
-        // Emit the term and document IDs to count document frequency
-        for (String uniqueDoc : uniqueDocs) {
-            term.set(termText);
-            docId.set(uniqueDoc);
-            context.write(term, docId);  // Emit term and docId
-        }
+        // Calculate IDF: log(Total Docs / Docs Containing Term)
+        double idf = Math.log10(10.0 / docCount);  // Assuming there are 10 documents
+
+        // Output the term and its IDF value
+        result.set(String.valueOf(idf));
+        context.write(key, result);
     }
 }
