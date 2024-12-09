@@ -50,7 +50,7 @@ public class PartTwoDriver extends Configured implements Tool {
         idfJob.setOutputValueClass(Text.class);
         FileInputFormat.addInputPath(idfJob, tfOutputPath);
         Path idfOutputPath = new Path(args[1] + "_idf");
-        FileOutputFormat.setOutputPath(idfOutputPath);
+        FileOutputFormat.setOutputPath(idfJob, idfOutputPath);
         if (fs.exists(idfOutputPath)) fs.delete(idfOutputPath, true);
         if (!idfJob.waitForCompletion(true)) return 1;
 
@@ -62,8 +62,8 @@ public class PartTwoDriver extends Configured implements Tool {
         tfidfJob.setOutputKeyClass(Text.class);
         tfidfJob.setOutputValueClass(Text.class);
         FileInputFormat.addInputPath(tfidfJob, idfOutputPath);
-        Path tfidfOutputPath = new Path(args[2]);
-        FileOutputFormat.setOutputPath(tfidfOutputPath);
+        Path tfidfOutputPath = new Path(args[2]);  // Ensure this is a Path object
+        FileOutputFormat.setOutputPath(tfidfJob, tfidfOutputPath);
         if (fs.exists(tfidfOutputPath)) fs.delete(tfidfOutputPath, true);
         return tfidfJob.waitForCompletion(true) ? 0 : 1;
     }
