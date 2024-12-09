@@ -5,47 +5,31 @@ import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.Set;
 
-public class TFMapper extends Mapper<Object, Text, Text, Text> {
-
+public class IDFMapper extends Mapper<Object, Text, Text, Text> {
     private Text term = new Text();
-    private Text docAndCount = new Text();
+    private Text docId = new Text();
 
     @Override
     protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        // Parse the positional index line
         String line = value.toString().trim();
-        if (line.startsWith("<") && line.endsWith(">")) {
-            String content = line.substring(1, line.length() - 1).trim();
-            String[] parts = content.split("\\s+", 2);
-            String termText = parts[0];
-            String docData = parts[1];
+        String[] parts = line.split("\\s+", 2); // Split the term and doc data
+        String termText = parts[0];  // The term
+        String docData = parts[1];   // The document data (docId: positions)
 
-            // Extract docId and positions
-            String[] docs = docData.split(";");
-            Set<String> docsWithTerm = new HashSet<>(); // To track docs containing the term
+        // Use a HashSet to ensure each document is counted only once
+        HashSet<String> uniqueDocs = new HashSet<>();
+        String[] docs = docData.split(";");
+        for (String doc : docs) {
+            String docIdPart = doc.split(":")[0];  // Extract the docId
+            uniqueDocs.add(docIdPart);  // Add the document to the set (to avoid duplicates)
+        }
 
-            for (String doc : docs) {
-                String docId = doc.split(":")[0].trim();
-                int count = doc.split(":")[1].split(",").length;
-                docsWithTerm.add(docId);  // Mark this document as having the term
-
-                term.set(termText);
-                docAndCount.set(docId + ":" + count);
-                context.write(term, docAndCount);
-            }
-
-            // Now we need to emit 0 for documents that didn't contain this term
-            // Iterate through all document IDs (doc1, doc2, ..., doc10)
-            for (int i = 1; i <= 10; i++) {
-                String docId = "doc" + i;
-                if (!docsWithTerm.contains(docId)) {
-                    term.set(termText);
-                    docAndCount.set(docId + ":0");
-                    context.write(term, docAndCount);
-                }
-            }
+        // Emit term and document id (we only emit each document once per term)
+        for (String doc : uniqueDocs) {
+            term.set(termText);  // Set the term
+            docId.set(doc);      // Set the document ID
+            context.write(term, docId);  // Emit the pair (term, docId)
         }
     }
 }
