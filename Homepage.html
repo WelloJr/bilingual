@@ -27,7 +27,10 @@ public class TFReducer extends Reducer<Text, Text, Text, Text> {
         StringBuilder output = new StringBuilder();
         for (int docId = 1; docId <= 10; docId++) {
             String docKey = "doc" + docId;
-            int freq = docFrequencyMap.getOrDefault(docKey, 0);
+            int freq = 0; // Default value
+            if (docFrequencyMap.containsKey(docKey)) {
+                freq = docFrequencyMap.get(docKey);
+            }
             output.append(docKey).append(":").append(freq).append("; ");
         }
 
