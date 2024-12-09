@@ -4,26 +4,35 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
+import java.util.HashSet;
 
 public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     private Text result = new Text();
 
     @Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        int docCount = 0;
-        
-        // Use a HashSet to count unique documents
+        // Initialize HashSet to track unique document IDs
         HashSet<String> uniqueDocs = new HashSet<>();
-        for (Text val : values) {
-            uniqueDocs.add(val.toString());  // Each docId should be counted only once
-        }
         
-        docCount = uniqueDocs.size();  // The DF is the size of the uniqueDocs set
+        // Loop through the values and add document IDs to the set (no duplicates)
+        for (Text val : values) {
+            uniqueDocs.add(val.toString());  // Add docId to the set
+        }
 
-        // Calculate IDF: IDF = log(N / DF) where N is the total number of documents (10)
-        double idf = Math.log(10.0 / (docCount + 1));  // Avoid division by zero by adding 1 to DF
+        int docCount = uniqueDocs.size();  // Document frequency (DF) is the size of the set
 
-        result.set(String.valueOf(idf));  // Set the IDF value
-        context.write(key, result);  // Emit the term and its IDF value
+        // Ensure DF is not zero to avoid division by zero issues
+        if (docCount == 0) {
+            docCount = 1;  // If no documents contain the term, we can assign DF=1 to avoid division by zero
+        }
+
+        // Calculate IDF: IDF = log(N / DF), where N is the total number of documents (assumed 10)
+        double idf = Math.log(10.0 / docCount);
+
+        // Set the IDF result
+        result.set(String.valueOf(idf));
+
+        // Emit the term and its IDF value
+        context.write(key, result);
     }
 }
