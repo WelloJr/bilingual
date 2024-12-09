@@ -4,16 +4,19 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
+import java.util.Iterator;
 
 public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     private Text result = new Text();
 
     @Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        // Count the number of documents containing the term
         int docCount = 0;
 
-        for (/* simply iterate */ : values) {
+        // Use an explicit iterator to count documents
+        Iterator<Text> iterator = values.iterator();
+        while (iterator.hasNext()) {
+            iterator.next(); // Move to the next value
             docCount++;
         }
 
