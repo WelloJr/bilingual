@@ -1,30 +1,20 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 
-public class IDFReducer extends Reducer<Text, Text, Text, Text> {
-    private Text result = new Text();
+public class TFIDFMapper extends Mapper<Object, Text, Text, Text> {
+    private Text term = new Text();
+    private Text docAndTfIdf = new Text();
 
     @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        int docCount = 0;
-
-        for (Text val : values) {
-            if (val != null) {
-                docCount++;  // Increment for each document
-            }
-        }
-
-        int totalDocuments = 10;  // Adjust this if your dataset size changes
-        double idf = 0.0;
-        if (docCount > 0) {
-            idf = Math.log10((double) totalDocuments / docCount);
-        }
-
-        result.set(String.valueOf(idf));
-        context.write(key, result);
+    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        String line = value.toString().trim();
+        String[] parts = line.split("\\t", 2);
+        term.set(parts[0]);
+        docAndTfIdf.set(parts[1]);
+        context.write(term, docAndTfIdf);
     }
 }
