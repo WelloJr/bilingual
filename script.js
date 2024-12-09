@@ -12,9 +12,10 @@ public class TFReducer extends Reducer<Text, Text, Text, Text> {
 
     @Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        // Map to hold the document frequencies for the current term
         Map<String, Integer> docFrequencyMap = new HashMap<>();
 
-        // Populate map with actual term frequencies
+        // Populate map with actual term frequencies from the values
         for (Text val : values) {
             String[] parts = val.toString().split(":");
             String docId = parts[0].trim();
@@ -22,20 +23,18 @@ public class TFReducer extends Reducer<Text, Text, Text, Text> {
             docFrequencyMap.put(docId, count);
         }
 
+        // StringBuilder to hold the final output
         StringBuilder output = new StringBuilder();
 
         // Iterate through all documents (doc1 to doc10)
         for (int docId = 1; docId <= 10; docId++) {
             String docKey = "doc" + docId;
+            // Get the frequency from the map or 0 if the term is not in the document
             int freq = docFrequencyMap.containsKey(docKey) ? docFrequencyMap.get(docKey) : 0;
-
-            // Add to output only if frequency > 0 (for IDF compatibility)
-            if (freq > 0) {
-                output.append(docKey).append(":").append(freq).append("; ");
-            }
+            output.append(docKey).append(":").append(freq).append("; ");
         }
 
-        // Set the result as the string with TF values
+        // Remove the trailing space and write the output
         result.set(output.toString().trim());
         context.write(key, result);
     }
