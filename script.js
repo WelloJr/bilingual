@@ -14,10 +14,13 @@ public class IDFReducer extends Reducer<Text, Text, Text, Text> {
 
         // Count the number of documents containing the term
         for (Text val : values) {
-            docCount++;  // Increment for each document
+            // Explicitly "use" the variable to satisfy Java 7
+            if (val != null) {
+                docCount++;
+            }
         }
 
-        // Total number of documents (adjust this based on your dataset size)
+        // Total number of documents (adjust based on your dataset)
         int totalDocuments = 10;
 
         // Compute IDF: Avoid division by zero by ensuring docCount > 0
