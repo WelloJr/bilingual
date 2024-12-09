@@ -1,36 +1,34 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 
-public class IDFReducer extends Reducer<Text, Text, Text, Text> {
-    private Text result = new Text();
+public class TFMapper extends Mapper<Object, Text, Text, Text> {
+
+    private Text term = new Text();
+    private Text docAndCount = new Text();
 
     @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        int docCount = 0;
+    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        String line = value.toString().trim();
+        if (line.startsWith("<") && line.endsWith(">")) {
+            String content = line.substring(1, line.length() - 1).trim();
+            String[] parts = content.split("\\s+", 2);
+            String termText = parts[0];
+            String docData = parts[1];
 
-        // Count the number of documents containing the term
-        for (Text val : values) {
-            // Explicitly "use" the variable to satisfy Java 7
-            if (val != null) {
-                docCount++;
+            String[] docs = docData.split(";");
+            for (String doc : docs) {
+                String[] docParts = doc.split(":");
+                String docId = docParts[0].trim();
+                int count = docParts[1].split(",").length;
+
+                term.set(termText);
+                docAndCount.set(docId + ":" + count);
+                context.write(term, docAndCount);
             }
         }
-
-        // Total number of documents (adjust based on your dataset)
-        int totalDocuments = 10;
-
-        // Compute IDF: Avoid division by zero by ensuring docCount > 0
-        double idf = 0.0;
-        if (docCount > 0) {
-            idf = Math.log10((double) totalDocuments / docCount);
-        }
-
-        // Write the term and its IDF value
-        result.set(String.valueOf(idf));
-        context.write(key, result);
     }
 }
