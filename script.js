@@ -1,37 +1,33 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 
-public class TFMapper extends Mapper<Object, Text, Text, Text> {
-
-    private Text term = new Text();
-    private Text docAndCount = new Text();
+public class IDFReducer extends Reducer<Text, Text, Text, Text> {
+    private Text result = new Text();
 
     @Override
-    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        // Parse the line for term and document data
-        String line = value.toString().trim();
+    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        int docCount = 0;
 
-        // Check if the line is properly formatted
-        if (line.startsWith("<") && line.endsWith(">")) {
-            String content = line.substring(1, line.length() - 1).trim();  // Remove the '< >'
-            String[] parts = content.split("\\s+", 2);  // Split the term and document data
-
-            String termText = parts[0];
-            String docData = parts[1];
-
-            // Split the docData by ';' to handle multiple documents
-            String[] docs = docData.split(";");
-            for (String doc : docs) {
-                String docId = doc.split(":")[0].trim();  // Extract docId
-                int count = doc.split(":")[1].split(",").length;  // Count positions
-                term.set(termText);  // Set the term
-                docAndCount.set(docId + ":" + count);  // Set docId and count
-                context.write(term, docAndCount);  // Emit the term and document with its count
-            }
+        // Count the number of documents containing the term
+        for (Text val : values) {
+            docCount++;  // Increment for each document
         }
+
+        // Total number of documents (adjust this based on your dataset size)
+        int totalDocuments = 10;
+
+        // Compute IDF: Avoid division by zero by ensuring docCount > 0
+        double idf = 0.0;
+        if (docCount > 0) {
+            idf = Math.log10((double) totalDocuments / docCount);
+        }
+
+        // Write the term and its IDF value
+        result.set(String.valueOf(idf));
+        context.write(key, result);
     }
 }
