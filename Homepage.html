@@ -1,38 +1,35 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 import java.util.HashSet;
 
-public class IDFReducer extends Reducer<Text, Text, Text, Text> {
-    private Text result = new Text();
+public class IDFMapper extends Mapper<Object, Text, Text, Text> {
+    private Text term = new Text();
+    private Text docId = new Text();
 
     @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        // Initialize HashSet to track unique document IDs
+    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        String line = value.toString().trim();
+        String[] parts = line.split("\\s+", 2); // Split term and doc data
+        String termText = parts[0];  // The term
+        String docData = parts[1];   // The document data (docId: positions)
+
+        // Use a HashSet to ensure each document is counted only once for the term
         HashSet<String> uniqueDocs = new HashSet<>();
-        
-        // Loop through the values and add document IDs to the set (no duplicates)
-        for (Text val : values) {
-            uniqueDocs.add(val.toString());  // Add docId to the set
+        String[] docs = docData.split(";");
+        for (String doc : docs) {
+            String docIdPart = doc.split(":")[0];  // Extract the docId
+            uniqueDocs.add(docIdPart);  // Add the document to the set
         }
 
-        int docCount = uniqueDocs.size();  // Document frequency (DF) is the size of the set
-
-        // Ensure DF is not zero to avoid division by zero issues
-        if (docCount == 0) {
-            docCount = 1;  // If no documents contain the term, we can assign DF=1 to avoid division by zero
+        // Emit each unique document with the term
+        for (String doc : uniqueDocs) {
+            term.set(termText);  // Set the term
+            docId.set(doc);      // Set the document ID
+            context.write(term, docId);  // Emit the term and docId pair
         }
-
-        // Calculate IDF: IDF = log(N / DF), where N is the total number of documents (assumed 10)
-        double idf = Math.log(10.0 / docCount);
-
-        // Set the IDF result
-        result.set(String.valueOf(idf));
-
-        // Emit the term and its IDF value
-        context.write(key, result);
     }
 }
