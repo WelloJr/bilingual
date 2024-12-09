@@ -1,40 +1,51 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
-public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
-    private Text result = new Text();
+public class TFMapper extends Mapper<Object, Text, Text, Text> {
+
+    private Text term = new Text();
+    private Text docAndCount = new Text();
 
     @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        double idf = 0.0;  // Initialize IDF value
+    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        // Parse the positional index line
+        String line = value.toString().trim();
+        if (line.startsWith("<") && line.endsWith(">")) {
+            String content = line.substring(1, line.length() - 1).trim();
+            String[] parts = content.split("\\s+", 2);
+            String termText = parts[0];
+            String docData = parts[1];
 
-        // List to hold TF values for each document
-        StringBuilder output = new StringBuilder();
+            // Extract docId and positions
+            String[] docs = docData.split(";");
+            Set<String> docsWithTerm = new HashSet<>(); // To track docs containing the term
 
-        for (Text val : values) {
-            String[] docData = val.toString().split(";");
-            
-            // Ensure the docData has values before processing
-            if (docData.length > 0) {
-                for (String doc : docData) {
-                    String[] docParts = doc.split(":");
-                    if (docParts.length == 2) {  // Ensure that there are two parts (docId, tf value)
-                        String docId = docParts[0].trim();
-                        int tf = Integer.parseInt(docParts[1].trim());
+            for (String doc : docs) {
+                String docId = doc.split(":")[0].trim();
+                int count = doc.split(":")[1].split(",").length;
+                docsWithTerm.add(docId);  // Mark this document as having the term
 
-                        // Calculate TF-IDF: TF * IDF
-                        double tfIdf = (1 + Math.log10(tf)) * idf;
-                        output.append(docId).append(": ").append(tfIdf).append("; ");
-                    }
+                term.set(termText);
+                docAndCount.set(docId + ":" + count);
+                context.write(term, docAndCount);
+            }
+
+            // Now we need to emit 0 for documents that didn't contain this term
+            // Iterate through all document IDs (doc1, doc2, ..., doc10)
+            for (int i = 1; i <= 10; i++) {
+                String docId = "doc" + i;
+                if (!docsWithTerm.contains(docId)) {
+                    term.set(termText);
+                    docAndCount.set(docId + ":0");
+                    context.write(term, docAndCount);
                 }
             }
         }
-
-        result.set(output.toString().trim());
-        context.write(key, result);  // Emit the final term with TF-IDF values for each document
     }
 }
