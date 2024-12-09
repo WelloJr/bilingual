@@ -13,8 +13,11 @@ public class IDFReducer extends Reducer<Text, Text, Text, Text> {
         int docCount = 0;
 
         // Count the number of documents containing the term
-        for (Text ignored : values) {
-            docCount++;
+        for (Text val : values) {
+            // Increment docCount for each document occurrence
+            if (val != null) {  // This ensures that the variable is "used"
+                docCount++;
+            }
         }
 
         // Total number of documents (adjust based on your dataset)
