@@ -1,41 +1,36 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
 
-public class TFReducer extends Reducer<Text, Text, Text, Text> {
-    private Text result = new Text();
+public class IDFMapper extends Mapper<Object, Text, Text, Text> {
+
+    private Text term = new Text();
+    private Text docId = new Text();
 
     @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        // Map to store term frequencies for each document
-        Map<String, Integer> docFrequencyMap = new HashMap<>();
+    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        String line = value.toString().trim();
+        String[] parts = line.split("\\s+", 2);
+        String termText = parts[0];
+        String docData = parts[1];
 
-        // Fill the map with counts from the values
-        for (Text val : values) {
-            String[] parts = val.toString().split(":");
-            String docId = parts[0].trim();
-            int count = Integer.parseInt(parts[1].trim());
-            docFrequencyMap.put(docId, count);
+        // Use a HashSet to avoid duplicate documents
+        HashSet<String> uniqueDocs = new HashSet<>();
+        String[] docs = docData.split(";");
+        for (String doc : docs) {
+            String docIdPart = doc.split(":")[0];  // Extract docId
+            uniqueDocs.add(docIdPart);  // Add unique docIds to the set
         }
 
-        // Fill in missing documents with zero counts
-        StringBuilder output = new StringBuilder();
-        for (int docId = 1; docId <= 10; docId++) {
-            String docKey = "doc" + docId;
-            int freq = 0; // Default value
-            if (docFrequencyMap.containsKey(docKey)) {
-                freq = docFrequencyMap.get(docKey);
-            }
-            output.append(docKey).append(":").append(freq).append("; ");
+        // Emit each term and document ID pair for further processing
+        for (String uniqueDoc : uniqueDocs) {
+            term.set(termText);
+            docId.set(uniqueDoc);
+            context.write(term, docId);  // Emit the term and document ID pair
         }
-
-        // Emit the term with its complete TF values
-        result.set(output.toString().trim());
-        context.write(key, result);
     }
 }
