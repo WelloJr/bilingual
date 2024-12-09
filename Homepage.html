@@ -1,32 +1,35 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.StringTokenizer;
 
-public class IDFReducer extends Reducer<Text, Text, Text, Text> {
+public class TFMapper extends Mapper<Object, Text, Text, Text> {
 
-    private Text result = new Text();
+    private Text term = new Text();
+    private Text docAndCount = new Text();
 
     @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        // Use a Set to store unique document IDs
-        HashSet<String> uniqueDocs = new HashSet<>();
+    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        // Parse the positional index line
+        String line = value.toString().trim();
+        if (line.startsWith("<") && line.endsWith(">")) {
+            String content = line.substring(1, line.length() - 1).trim();
+            String[] parts = content.split("\\s+", 2);
+            String termText = parts[0];
+            String docData = parts[1];
 
-        // Iterate through the values (docId) and add them to the Set
-        for (Text value : values) {
-            String docId = value.toString().trim(); // Document ID from the Mapper output
-            uniqueDocs.add(docId); // Only unique docIds will be added
+            // Extract docId and positions
+            String[] docs = docData.split(";");
+            for (String doc : docs) {
+                String docId = doc.split(":")[0].trim();
+                int count = doc.split(":")[1].split(",").length;
+                term.set(termText);
+                docAndCount.set(docId + ":" + count);
+                context.write(term, docAndCount);
+            }
         }
-
-        // Calculate IDF: log(Total Docs / Docs Containing Term)
-        int docCount = uniqueDocs.size();  // Number of documents containing the term
-        double idf = Math.log10(10.0 / docCount);  // Assuming there are 10 documents in total
-
-        // Write the term and its IDF value
-        result.set(String.valueOf(idf));
-        context.write(key, result);
     }
 }
