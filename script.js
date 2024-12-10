@@ -12,12 +12,12 @@ public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
         int docCount = 0;
 
-        // Count the number of unique documents for each term
-        for (Text val : values) {
-            docCount++;  // Count each document where the term appears
+        // Count how many documents contain this term
+        for (Text ignored : values) {
+            docCount++; // Simply count the number of values (documents)
         }
 
-        int totalDocuments = 10;  // Total number of documents in the corpus
+        int totalDocuments = 10;  // Assuming 10 documents in the corpus
         double idf = 0.0;
         if (docCount > 0) {
             idf = Math.log10((double) totalDocuments / docCount);  // Calculate IDF
