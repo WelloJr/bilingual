@@ -1,30 +1,37 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 
-public class IDFReducer extends Reducer<Text, Text, Text, Text> {
-    private Text result = new Text();
+public class TFMapper extends Mapper<Object, Text, Text, Text> {
+    private Text term = new Text();
+    private Text docAndCount = new Text();
 
     @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        int docCount = 0;
+    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        // Parse the positional index line
+        String line = value.toString().trim();
+        if (line.startsWith("<") && line.endsWith(">")) {
+            String content = line.substring(1, line.length() - 1).trim();
+            String[] parts = content.split("\\s+", 2);
+            String termText = parts[0];
+            String docData = parts[1];
 
-        for (Text val : values) {
-            if (val != null) {
-                docCount++;
+            // Extract docId and positions
+            String[] docs = docData.split(";");
+            for (String doc : docs) {
+                String docId = doc.split(":")[0].trim();
+                int count = doc.split(":")[1].split(",").length;
+                
+                // Emit only non-zero term frequencies
+                if (count > 0) {
+                    term.set(termText);
+                    docAndCount.set(docId + ":" + count);
+                    context.write(term, docAndCount);
+                }
             }
         }
-
-        int totalDocuments = 10; // Adjust if the dataset size changes
-        double idf = 0.0;
-        if (docCount > 0) {
-            idf = Math.log10((double) totalDocuments / docCount);  // Compute IDF
-        }
-
-        result.set(String.valueOf(idf));
-        context.write(key, result);
     }
 }
