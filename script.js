@@ -4,31 +4,29 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Iterator;
 
-public class TFReducer extends Reducer<Text, Text, Text, Text> {
+public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     private Text result = new Text();
 
     @Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        Map<String, Integer> docFrequencyMap = new HashMap<>();
+        int docCount = 0;
 
-        for (Text val : values) {
-            String[] parts = val.toString().split(":");
-            String docId = parts[0].trim();
-            int count = Integer.parseInt(parts[1].trim());
-            docFrequencyMap.put(docId, count);
+        // Use an explicit iterator to count documents
+        Iterator<Text> iterator = values.iterator();
+        while (iterator.hasNext()) {
+            iterator.next();  // Move to the next value
+            docCount++;
         }
 
-        StringBuilder output = new StringBuilder();
-        for (int docId = 1; docId <= 10; docId++) {
-            String docKey = "doc" + docId;
-            int freq = docFrequencyMap.containsKey(docKey) ? docFrequencyMap.get(docKey) : 0;  // Default to 0 if not found
-            output.append(docKey).append(":").append(freq).append("; ");
-        }
+        // Compute IDF using log10(N / DF), assuming N = 10 documents
+        double idf = Math.log10(10.0 / docCount);
 
-        result.set(output.toString().trim());
+        // Set the result as the IDF value
+        result.set(String.valueOf(idf));
+
+        // Write the term and its IDF value to the context
         context.write(key, result);
     }
 }
