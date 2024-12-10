@@ -4,6 +4,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
+import java.util.Iterator;
 
 public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     private Text result = new Text();
@@ -12,18 +13,20 @@ public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
         int docCount = 0;
 
-        // Iterate over the values, just counting the occurrences
-        for (Text ignored : values) {
-            docCount++;  // Increment count for each document
+        // Use an explicit iterator to avoid unused variable warnings
+        Iterator<Text> iterator = values.iterator();
+        while (iterator.hasNext()) {
+            iterator.next();  // Move to the next value (we don't use the value itself)
+            docCount++;       // Count the document
         }
 
-        // Calculate IDF (assuming 10 total documents, replace if needed)
-        double idf = Math.log10(10.0 / docCount); // Assuming N = 10 documents
+        // Calculate IDF (assuming N = 10 documents)
+        double idf = Math.log10(10.0 / docCount); // DF = docCount
 
-        // Set the IDF result for the current term
+        // Set the result as the IDF value
         result.set(String.valueOf(idf));
 
-        // Output the term and its IDF value
+        // Write the term and its IDF value to the context
         context.write(key, result);
     }
 }
