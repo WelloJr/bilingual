@@ -1,53 +1,35 @@
-package reducer;
+package driver;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.HashMap;  // Make sure to import HashMap
+import mapper.PositionalIndexMapper;
+import reducer.PositionalIndexReducer;
 
-public class PositionalIndexReducer extends Reducer<Text, Text, Text, Text> {
-    @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        // Map to store document IDs and positions
-        Map<String, List<String>> positionalMap = new HashMap<>();
-
-        // Process each value (docID:position)
-        for (Text value : values) {
-            String[] docAndPos = value.toString().split(":"); // Split into docID and position
-            String docID = docAndPos[0];
-            String position = docAndPos[1];
-
-            // Add position to the respective docID list in the map
-            if (!positionalMap.containsKey(docID)) {
-                positionalMap.put(docID, new ArrayList<String>()); // Explicitly declare ArrayList<String>
-            }
-            positionalMap.get(docID).add(position);
+public class PositionalIndexDriver {
+    public static void main(String[] args) throws Exception {
+        if (args.length < 2) {
+            System.err.println("Usage: PositionalIndexDriver <input path> <output path>");
+            System.exit(-1);
         }
 
-        // Prepare output in the required format
-        StringBuilder formattedOutput = new StringBuilder("< ");
-        formattedOutput.append(key.toString()); // Append the term (key)
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "Positional Index");
+        job.setJarByClass(PositionalIndexDriver.class);
 
-        // Loop over the positional map to add docID and positions
-        for (Map.Entry<String, List<String>> entry : positionalMap.entrySet()) {
-            formattedOutput.append(" doc").append(entry.getKey()).append(": ");
-            // Manually join the positions in the list
-            List<String> positions = entry.getValue();
-            for (int i = 0; i < positions.size(); i++) {
-                formattedOutput.append(positions.get(i));
-                if (i < positions.size() - 1) {
-                    formattedOutput.append(", ");
-                }
-            }
-            formattedOutput.append(" ; ");
-        }
-        formattedOutput.append(">");
+        job.setMapperClass(PositionalIndexMapper.class);
+        job.setReducerClass(PositionalIndexReducer.class);
 
-        // Write output to context
-        context.write(key, new Text(formattedOutput.toString()));
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
