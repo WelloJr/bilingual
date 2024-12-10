@@ -4,44 +4,25 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
-public class TFReducer extends Reducer<Text, Text, Text, Text> {
+public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     private Text result = new Text();
 
     @Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        // Map to hold the term frequencies for each document
-        Map<String, Integer> docFrequencyMap = new HashMap<>();
+        int docCount = 0;
 
-        // Iterate through the values to populate the docFrequencyMap
+        // Count the number of documents where the term appears
         for (Text val : values) {
-            String[] parts = val.toString().split(":");
-            String docId = parts[0].trim();
-            int count = Integer.parseInt(parts[1].trim());
-            docFrequencyMap.put(docId, count);  // Store frequency for each document
+            docCount++;
         }
 
-        // StringBuilder to accumulate the output for all documents (doc1 to doc10)
-        StringBuilder output = new StringBuilder();
-        
-        // Iterate over all 10 documents
-        for (int docId = 1; docId <= 10; docId++) {
-            String docKey = "doc" + docId;
-            
-            // If the document exists in the map, get its frequency; otherwise, default to 0
-            int freq = 0;
-            if (docFrequencyMap.containsKey(docKey)) {
-                freq = docFrequencyMap.get(docKey);  // Get the frequency of the term in the document
-            }
-            
-            // Append the document ID and its term frequency (or 0 if not present)
-            output.append(docKey).append(":").append(freq).append("; ");
-        }
+        // Calculate IDF using the formula: log(N / DF)
+        int totalDocs = 10; // Total number of documents
+        double idf = Math.log10((double) totalDocs / docCount);
 
-        // Set the final output and write it to the context
-        result.set(output.toString().trim());
+        // Emit the term with DF and IDF
+        result.set(docCount + " | " + idf);
         context.write(key, result);
     }
 }
