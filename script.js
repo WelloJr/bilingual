@@ -7,32 +7,44 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TFReducer extends Reducer<Text, Text, Text, Text> {
+public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
     private Text result = new Text();
 
     @Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        // Map to hold term frequencies for each document
-        Map<String, Integer> docFrequencyMap = new HashMap<>();
+        double idf = 0.0;
+        Map<String, Integer> tfMap = new HashMap<>();
 
-        // Populate the map with actual term frequencies
+        // Separate TF and IDF data
         for (Text val : values) {
-            String[] parts = val.toString().split(":");
-            String docId = parts[0].trim();
-            int count = Integer.parseInt(parts[1].trim());
-            docFrequencyMap.put(docId, count);
+            String value = val.toString();
+            if (value.contains("|")) {
+                // Extract IDF value
+                String[] parts = value.split("\\|");
+                idf = Double.parseDouble(parts[1].trim());
+            } else {
+                // Extract TF data
+                String[] docData = value.split(";");
+                for (String doc : docData) {
+                    String[] docParts = doc.split(":");
+                    String docId = docParts[0].trim();
+                    int tf = Integer.parseInt(docParts[1].trim());
+                    tfMap.put(docId, tf);
+                }
+            }
         }
 
-        // Create TF output for all documents (doc1 to doc10)
-        StringBuilder tfOutput = new StringBuilder();
+        // Calculate TF-IDF for each document
+        StringBuilder tfidfOutput = new StringBuilder();
         for (int docId = 1; docId <= 10; docId++) {
             String docKey = "doc" + docId;
-            int freq = docFrequencyMap.containsKey(docKey) ? docFrequencyMap.get(docKey) : 0;
-            tfOutput.append(docKey).append(":").append(freq).append("; ");
+            int tf = tfMap.containsKey(docKey) ? tfMap.get(docKey) : 0;
+            double tfidf = tf * idf; // TF-IDF = TF * IDF
+            tfidfOutput.append(docKey).append(":").append(tfidf).append("; ");
         }
 
-        // Write the complete TF output to the context
-        result.set(tfOutput.toString().trim());
+        // Write the TF-IDF output to context
+        result.set(tfidfOutput.toString().trim());
         context.write(key, result);
     }
 }
