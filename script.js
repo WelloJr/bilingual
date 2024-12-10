@@ -1,48 +1,35 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-public class TFMapper extends Mapper<Object, Text, Text, Text> {
-    private Text term = new Text();
-    private Text docAndCount = new Text();
+public class TFReducer extends Reducer<Text, Text, Text, Text> {
+    private Text result = new Text();
 
     @Override
-    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        String line = value.toString().trim();
-        if (line.startsWith("<") && line.endsWith(">")) {
-            String content = line.substring(1, line.length() - 1).trim();
-            String[] parts = content.split("\\s+", 2);
-            String termText = parts[0];
-            String docData = parts[1];
+    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        Map<String, Integer> docFrequencyMap = new HashMap<>();
 
-            String[] docs = docData.split(";");
-            for (String doc : docs) {
-                String docId = doc.split(":")[0].trim();
-                int count = doc.split(":")[1].split(",").length;
-                term.set(termText);
-                docAndCount.set(docId + ":" + count);
-                context.write(term, docAndCount);
-            }
-
-            // Emit 0 for all other documents that don't contain the term
-            for (int docId = 1; docId <= 10; docId++) {
-                String docKey = "doc" + docId;
-                boolean found = false;
-                for (String doc : docs) {
-                    if (doc.split(":")[0].equals(docKey)) {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    term.set(termText);
-                    docAndCount.set(docKey + ":0");
-                    context.write(term, docAndCount);
-                }
-            }
+        for (Text val : values) {
+            String[] parts = val.toString().split(":");
+            String docId = parts[0].trim();
+            int count = Integer.parseInt(parts[1].trim());
+            docFrequencyMap.put(docId, count);
         }
+
+        // Add missing documents with a TF of 0
+        StringBuilder output = new StringBuilder();
+        for (int docId = 1; docId <= 10; docId++) {
+            String docKey = "doc" + docId;
+            int freq = docFrequencyMap.getOrDefault(docKey, 0);
+            output.append(docKey).append(":").append(freq).append("; ");
+        }
+
+        result.set(output.toString().trim());
+        context.write(key, result);
     }
 }
