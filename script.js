@@ -10,25 +10,34 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-public class PartTwoDriver implements Tool {
-    private Configuration conf;
+public class PartTwoDriver extends Configured implements Tool {
 
     @Override
     public int run(String[] args) throws Exception {
         if (args.length != 3) {
-            System.err.println("Usage: PartTwoDriver <input path> <output path>");
+            System.err.println("Usage: PartTwoDriver <input path> <intermediate path> <output path>");
             return -1;
         }
 
         String inputPath = args[0];  // Input file path from Part 1 (positional index file)
-        String outputPath = args[2];  // Output path where TF, IDF, and TF-IDF will be stored
+        String intermediatePath = args[1]; // Intermediate output directory for TF and IDF
+        String outputPath = args[2];  // Final output directory for TF-IDF results
 
         // Get the Hadoop configuration and FileSystem object
         Configuration conf = getConf();
         FileSystem fs = FileSystem.get(conf);
 
-        // Clean up the output directory if it already exists
+        // Clean up the output directories if they already exist
+        Path intermediatePathTF = new Path(intermediatePath + "_tf");
+        Path intermediatePathIDF = new Path(intermediatePath + "_idf");
         Path outputPathTFIDF = new Path(outputPath);
+
+        if (fs.exists(intermediatePathTF)) {
+            fs.delete(intermediatePathTF, true);  // Delete if already exists
+        }
+        if (fs.exists(intermediatePathIDF)) {
+            fs.delete(intermediatePathIDF, true);  // Delete if already exists
+        }
         if (fs.exists(outputPathTFIDF)) {
             fs.delete(outputPathTFIDF, true);  // Delete if already exists
         }
@@ -42,7 +51,7 @@ public class PartTwoDriver implements Tool {
         tfJob.setOutputValueClass(Text.class);
 
         FileInputFormat.addInputPath(tfJob, new Path(inputPath));
-        FileOutputFormat.setOutputPath(tfJob, outputPathTFIDF);
+        FileOutputFormat.setOutputPath(tfJob, intermediatePathTF);
 
         if (!tfJob.waitForCompletion(true)) {
             return 1;  // If TF Job fails, stop the execution
@@ -56,8 +65,8 @@ public class PartTwoDriver implements Tool {
         idfJob.setOutputKeyClass(Text.class);
         idfJob.setOutputValueClass(Text.class);
 
-        FileInputFormat.addInputPath(idfJob, outputPathTFIDF);  // Read from TF output
-        FileOutputFormat.setOutputPath(idfJob, outputPathTFIDF);
+        FileInputFormat.addInputPath(idfJob, intermediatePathTF);  // Read from TF output
+        FileOutputFormat.setOutputPath(idfJob, intermediatePathIDF);
 
         if (!idfJob.waitForCompletion(true)) {
             return 1;  // If IDF Job fails, stop the execution
@@ -71,7 +80,7 @@ public class PartTwoDriver implements Tool {
         tfidfJob.setOutputKeyClass(Text.class);
         tfidfJob.setOutputValueClass(Text.class);
 
-        FileInputFormat.addInputPath(tfidfJob, outputPathTFIDF);  // Read from IDF output
+        FileInputFormat.addInputPath(tfidfJob, intermediatePathIDF);  // Read from IDF output
         FileOutputFormat.setOutputPath(tfidfJob, outputPathTFIDF);
 
         if (!tfidfJob.waitForCompletion(true)) {
@@ -83,12 +92,12 @@ public class PartTwoDriver implements Tool {
 
     @Override
     public void setConf(Configuration conf) {
-        this.conf = conf;
+        super.setConf(conf);
     }
 
     @Override
     public Configuration getConf() {
-        return conf;
+        return super.getConf();
     }
 
     public static void main(String[] args) throws Exception {
