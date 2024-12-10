@@ -18,10 +18,11 @@ public class IDFDriver {
         // Set the total number of documents as a configuration parameter
         conf.set("totalDocuments", args[2]);
 
-        // Create a Job object using the Configuration object
-        Job job = new Job(conf, "IDF Calculation");
+        // Initialize the Job object with the Configuration and job name
+        Job job = new Job(conf);
+        job.setJobName("IDF Calculation"); // Explicitly set the job name
 
-        // Set the jar class
+        // Specify the jar class
         job.setJarByClass(IDFDriver.class);
 
         // Set the Mapper and Reducer classes
