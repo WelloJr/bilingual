@@ -4,24 +4,39 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-public class IDFReducer extends Reducer<Text, Text, Text, Text> {
+public class TFReducer extends Reducer<Text, Text, Text, Text> {
     private Text result = new Text();
 
     @Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        int docCount = 0;
+        Map<String, Integer> docFrequencyMap = new HashMap<>();
+        int df = 0;
 
-        // Count unique documents where the term appears
-        for (@SuppressWarnings("unused") Text ignored : values) {
-            docCount++;
+        // Populate map with actual term frequencies from the values
+        for (Text val : values) {
+            String[] parts = val.toString().split(":");
+            String docId = parts[0].trim();
+            int count = Integer.parseInt(parts[1].trim());
+            docFrequencyMap.put(docId, count);
+
+            if (count > 0) {
+                df++;
+            }
         }
 
-        int totalDocs = 10; // Total number of documents
-        double idf = docCount > 0 ? Math.log10((double) totalDocs / docCount) : 0;
+        // StringBuilder to hold the final TF output
+        StringBuilder output = new StringBuilder();
+        for (int docId = 1; docId <= 10; docId++) {
+            String docKey = "doc" + docId;
+            int freq = docFrequencyMap.containsKey(docKey) ? docFrequencyMap.get(docKey) : 0;
+            output.append(docKey).append(":").append(freq).append("; ");
+        }
 
-        // Emit the term with DF and IDF
-        result.set(docCount + " | " + idf);
+        // Emit the DF as part of the value but don't display it
+        result.set(output.toString().trim() + "| DF:" + df);
         context.write(key, result);
     }
 }
