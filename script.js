@@ -10,7 +10,9 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-public class PartTwoDriver extends Configured implements Tool {
+public class PartTwoDriver implements Tool {
+
+    private Configuration conf; // Declare Configuration object
 
     @Override
     public int run(String[] args) throws Exception {
@@ -24,7 +26,6 @@ public class PartTwoDriver extends Configured implements Tool {
         String outputPath = args[2];  // Final output directory for TF-IDF results
 
         // Get the Hadoop configuration and FileSystem object
-        Configuration conf = getConf();
         FileSystem fs = FileSystem.get(conf);
 
         // Clean up the output directories if they already exist
@@ -90,14 +91,15 @@ public class PartTwoDriver extends Configured implements Tool {
         return 0;  // All jobs completed successfully
     }
 
+    // Directly setting and getting the configuration
     @Override
     public void setConf(Configuration conf) {
-        super.setConf(conf);
+        this.conf = conf;
     }
 
     @Override
     public Configuration getConf() {
-        return super.getConf();
+        return this.conf;
     }
 
     public static void main(String[] args) throws Exception {
