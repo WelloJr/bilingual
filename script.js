@@ -1,26 +1,21 @@
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-public class TFReducer extends Reducer<Text, Text, Text, Text> {
-    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        // Input: <term, [docID:freq, docID:freq, ...]>
-        Map<String, String> docFrequency = new HashMap<String, String>();
-
-        for (Text val : values) {
-            String[] docFreq = val.toString().split(":");
-            String docID = docFreq[0];
-            String freq = docFreq[1];
-            docFrequency.put(docID, freq);
-        }
-
-        // Output in matrix form
-        StringBuilder sb = new StringBuilder();
-        for (int i = 1; i <= 10; i++) { // Assuming 10 documents
-            sb.append(docFrequency.containsKey("doc" + i) ? docFrequency.get("doc" + i) : "0").append("\t");
-        }
-        context.write(key, new Text(sb.toString().trim()));
+public class TFDriver {
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        Job job = new Job(conf, "Term Frequency"); // Job instantiation for Java 7
+        job.setJarByClass(TFDriver.class);
+        job.setMapperClass(TFMapper.class);
+        job.setReducerClass(TFReducer.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
