@@ -1,42 +1,38 @@
 package com.example.tfidf;
 
 import java.io.IOException;
-import java.util.StringTokenizer;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 
-public class TF {
-    // TF Mapper
-    public static class TFMapper extends Mapper<Object, Text, Text, IntWritable> {
-        private final static IntWritable one = new IntWritable(1);
-        private Text wordDocPair = new Text();
+public class DF {
+    // DF Mapper
+    public static class DFMapper extends Mapper<Object, Text, Text, Text> {
+        private Text word = new Text();
+        private Text docId = new Text();
 
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-            String[] parts = value.toString().split("\\t", 2);
-            String docId = parts[0];
-            String content = parts[1];
-            StringTokenizer itr = new StringTokenizer(content);
-            while (itr.hasMoreTokens()) {
-                String word = itr.nextToken().toLowerCase();
-                wordDocPair.set(word + "@" + docId);
-                context.write(wordDocPair, one);
-            }
+            String[] parts = value.toString().split("@");
+            word.set(parts[0]);
+            docId.set(parts[1]);
+            context.write(word, docId);
         }
     }
 
-    // TF Reducer
-    public static class TFReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+    // DF Reducer
+    public static class DFReducer extends Reducer<Text, Text, Text, IntWritable> {
         private IntWritable result = new IntWritable();
 
-        public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
-            int sum = 0;
-            for (IntWritable val : values) {
-                sum += val.get();
+        public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+            Set<String> uniqueDocs = new HashSet<>();
+            for (Text val : values) {
+                uniqueDocs.add(val.toString());
             }
-            result.set(sum);
+            result.set(uniqueDocs.size());
             context.write(key, result);
         }
     }
