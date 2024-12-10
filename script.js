@@ -1,7 +1,7 @@
 package part2;
 
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -10,10 +10,23 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-public class PartTwoDriver extends Configured implements Tool {
+public class PartTwoDriver implements Tool, Configurable {
+
+    private Configuration conf;
+
     public static void main(String[] args) throws Exception {
-        int exitCode = ToolRunner.run(new Configuration(), new PartTwoDriver(), args);
+        int exitCode = ToolRunner.run(new PartTwoDriver(), args);
         System.exit(exitCode);
+    }
+
+    @Override
+    public void setConf(Configuration conf) {
+        this.conf = conf;
+    }
+
+    @Override
+    public Configuration getConf() {
+        return this.conf;
     }
 
     @Override
@@ -29,7 +42,7 @@ public class PartTwoDriver extends Configured implements Tool {
         Path outputPath = new Path(args[2]);
 
         // Step 1: TF Job
-        Job tfJob = Job.getInstance(getConf(), "TF Calculation");
+        Job tfJob = Job.getInstance(conf, "TF Calculation");
         tfJob.setJarByClass(PartTwoDriver.class);
         tfJob.setMapperClass(TFMapper.class);
         tfJob.setReducerClass(TFReducer.class);
@@ -44,7 +57,7 @@ public class PartTwoDriver extends Configured implements Tool {
         }
 
         // Step 2: IDF Job
-        Job idfJob = Job.getInstance(getConf(), "IDF Calculation");
+        Job idfJob = Job.getInstance(conf, "IDF Calculation");
         idfJob.setJarByClass(PartTwoDriver.class);
         idfJob.setMapperClass(IDFMapper.class);
         idfJob.setReducerClass(IDFReducer.class);
@@ -59,7 +72,7 @@ public class PartTwoDriver extends Configured implements Tool {
         }
 
         // Step 3: TF-IDF Job
-        Job tfidfJob = Job.getInstance(getConf(), "TF-IDF Calculation");
+        Job tfidfJob = Job.getInstance(conf, "TF-IDF Calculation");
         tfidfJob.setJarByClass(PartTwoDriver.class);
         tfidfJob.setMapperClass(TFIDFMapper.class);
         tfidfJob.setReducerClass(TFIDFReducer.class);
