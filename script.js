@@ -1,34 +1,36 @@
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-public class TFDriver {
+public class IDFDriver {
     public static void main(String[] args) throws Exception {
-        if (args.length != 2) {
-            System.err.println("Usage: TFDriver <input path> <output path>");
+        if (args.length < 3) {
+            System.err.println("Usage: IDFDriver <input path> <output path> <totalDocuments>");
             System.exit(-1);
         }
 
         // Create a Configuration object
         Configuration conf = new Configuration();
 
-        // Pass the Configuration object to the Job constructor
-        Job job = Job.getInstance(conf, "Term Frequency");
+        // Set the total number of documents as a configuration parameter
+        conf.set("totalDocuments", args[2]);
+
+        // Create a Job object using the Configuration object
+        Job job = new Job(conf, "IDF Calculation");
 
         // Set the jar class
-        job.setJarByClass(TFDriver.class);
+        job.setJarByClass(IDFDriver.class);
 
         // Set the Mapper and Reducer classes
-        job.setMapperClass(TFMapper.class);
-        job.setReducerClass(TFReducer.class);
+        job.setMapperClass(IDFMapper.class);
+        job.setReducerClass(IDFReducer.class);
 
         // Set the output key and value types
         job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(IntWritable.class);
+        job.setOutputValueClass(Text.class);
 
         // Set the input and output paths
         FileInputFormat.addInputPath(job, new Path(args[0]));
