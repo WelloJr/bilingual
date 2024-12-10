@@ -1,36 +1,40 @@
-import java.io.IOException;
-import java.util.HashMap;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
-    private Text outputKey = new Text();
-    private Text outputValue = new Text();
-
-    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        // Input: <term, [TF@docID=TF, IDF=value]>
-        double idf = 0.0;
-        HashMap<String, Double> tfMap = new HashMap<>();
-
-        // Parse TF and IDF values
-        for (Text value : values) {
-            String val = value.toString();
-            if (val.startsWith("TF@")) {
-                String[] parts = val.split("=");
-                String docID = parts[0].substring(3); // Extract docID
-                double tf = Double.parseDouble(parts[1]); // Extract TF
-                tfMap.put(docID, tf);
-            } else if (val.startsWith("IDF=")) {
-                idf = Double.parseDouble(val.split("=")[1]); // Extract IDF
-            }
+public class TFDriver {
+    public static void main(String[] args) throws Exception {
+        if (args.length != 2) {
+            System.err.println("Usage: TFDriver <input path> <output path>");
+            System.exit(-1);
         }
 
-        // Calculate TF-IDF and emit results
-        for (String docID : tfMap.keySet()) {
-            double tfidf = tfMap.get(docID) * idf;
-            outputKey.set(docID);
-            outputValue.set(key.toString() + ":" + tfidf); // <docID, term:TFIDF>
-            context.write(outputKey, outputValue);
-        }
+        // Create a Configuration object
+        Configuration conf = new Configuration();
+
+        // Pass the Configuration object to the Job constructor
+        Job job = Job.getInstance(conf, "Term Frequency");
+
+        // Set the jar class
+        job.setJarByClass(TFDriver.class);
+
+        // Set the Mapper and Reducer classes
+        job.setMapperClass(TFMapper.class);
+        job.setReducerClass(TFReducer.class);
+
+        // Set the output key and value types
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        // Set the input and output paths
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        // Exit after job completion
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
