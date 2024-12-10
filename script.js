@@ -1,21 +1,29 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 
-public class TFIDFMapper extends Mapper<Object, Text, Text, Text> {
-
-    private Text term = new Text();
-    private Text idfAndTf = new Text();
+public class IDFReducer extends Reducer<Text, Text, Text, Text> {
+    private Text result = new Text();
 
     @Override
-    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        String line = value.toString().trim();
-        String[] parts = line.split("\\t", 2);  // Split by tab to separate term and data
-        term.set(parts[0]);  // Set the term
-        idfAndTf.set(parts[1]);  // Set the associated IDF and TF data
-        context.write(term, idfAndTf);  // Emit the term with its data
+    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        int docCount = 0;
+
+        // Instead of using an iterator, we can directly loop over the values to count the documents
+        for (Text value : values) {
+            docCount++;  // Simply count the number of documents
+        }
+
+        // Compute IDF using log10(N / DF), assuming N = 10 documents
+        double idf = Math.log10(10.0 / docCount);  // DF is the docCount
+
+        // Set the result as the IDF value
+        result.set(String.valueOf(idf));
+
+        // Write the term and its IDF value to the context
+        context.write(key, result);
     }
 }
