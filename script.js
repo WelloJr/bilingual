@@ -1,42 +1,31 @@
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
+import java.io.IOException;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.Mapper;
 
-public class IDFDriver {
-    public static void main(String[] args) throws Exception {
-        if (args.length < 3) {
-            System.err.println("Usage: IDFDriver <input path> <output path> <totalDocuments>");
-            System.exit(-1);
+public class TFMapper extends Mapper<Object, Text, Text, IntWritable> {
+
+    private Text word = new Text();
+    private IntWritable count = new IntWritable(1);
+
+    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        // Input format: <term doc1:position1, position2 ... ; doc2:position1, ... ; >
+        String line = value.toString();
+        String[] parts = line.split("<");
+        
+        if (parts.length == 2) {
+            String term = parts[0].trim();
+            String docs = parts[1].trim().replaceAll("[<>]", ""); // Remove < and >
+            String[] docList = docs.split(";");
+
+            for (String doc : docList) {
+                String[] docTerm = doc.trim().split(":");
+                String docID = docTerm[0].trim();
+                int frequency = Integer.parseInt(docTerm[1].trim());
+                
+                word.set(term + "@" + docID);
+                context.write(word, count);
+            }
         }
-
-        // Create a Configuration object
-        Configuration conf = new Configuration();
-
-        // Set the total number of documents as a configuration parameter
-        conf.set("totalDocuments", args[2]);
-
-        // Use the older Job constructor with Configuration and job name
-        Job job = new Job(conf, "IDF Calculation");
-
-        // Specify the jar class for the job
-        job.setJarByClass(IDFDriver.class);
-
-        // Set the Mapper and Reducer classes
-        job.setMapperClass(IDFMapper.class);
-        job.setReducerClass(IDFReducer.class);
-
-        // Set the output key and value types
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
-
-        // Set the input and output paths
-        FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
-
-        // Run the job and exit upon completion
-        System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
