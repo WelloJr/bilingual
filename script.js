@@ -1,31 +1,30 @@
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
+import java.io.IOException;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.Mapper;
 
-public class IDFDriver {
-    public static void main(String[] args) throws Exception {
-        if (args.length < 3) {
-            System.err.println("Usage: IDFDriver <input path> <output path> <totalDocuments>");
-            System.exit(-1);
+public class TFIDFMapper extends Mapper<Object, Text, Text, Text> {
+    private Text outputKey = new Text();
+    private Text outputValue = new Text();
+
+    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        // Input format: Either <term@docID, TF> or <term, IDF>
+        String line = value.toString();
+        String[] parts = line.split("\\t");
+
+        if (parts[0].contains("@")) {
+            // TF Input: <term@docID, TF>
+            String[] termDoc = parts[0].split("@");
+            String term = termDoc[0];
+            String docID = termDoc[1];
+            outputKey.set(term);
+            outputValue.set("TF@" + docID + "=" + parts[1]); // Emit <term, TF@docID=TF>
+        } else {
+            // IDF Input: <term, IDF>
+            String term = parts[0];
+            String idf = parts[1];
+            outputKey.set(term);
+            outputValue.set("IDF=" + idf); // Emit <term, IDF=value>
         }
-
-        Configuration conf = new Configuration();
-        conf.set("totalDocuments", args[2]); // Pass total document count as a configuration parameter
-
-        Job job = new Job(conf, "IDF Calculation"); // Java 7-compatible Job instantiation
-        job.setJarByClass(IDFDriver.class);
-        job.setMapperClass(IDFMapper.class);
-        job.setReducerClass(IDFReducer.class);
-
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
-
-        FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
-
-        System.exit(job.waitForCompletion(true) ? 0 : 1);
+        context.write(outputKey, outputValue);
     }
 }
