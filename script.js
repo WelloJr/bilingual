@@ -1,29 +1,24 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 
-public class IDFReducer extends Reducer<Text, Text, Text, Text> {
-    private Text result = new Text();
+public class TFIDFMapper extends Mapper<Object, Text, Text, Text> {
+    private Text term = new Text();
+    private Text docAndTf = new Text();
 
     @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        int df = 0;
-        for (@SuppressWarnings("unused") Text ignored : values) {
-            df++;
+    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        String line = value.toString().trim();
+        String[] parts = line.split("\\| DF:");
+        if (parts.length < 2) {
+            return; // Skip malformed lines
         }
 
-        if (df == 0) {
-            return; // Ignore terms with DF = 0
-        }
-
-        int totalDocs = 10;
-        double idf = Math.log10((double) totalDocs / df);
-
-        // Emit DF and IDF
-        result.set(df + " | " + idf);
-        context.write(key, result);
+        term.set(parts[0].trim()); // Term
+        docAndTf.set(parts[1].trim()); // TF and IDF data
+        context.write(term, docAndTf);
     }
 }
