@@ -4,31 +4,32 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
+import java.util.Iterator;
 
-public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
+public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     private Text result = new Text();
 
     @Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        double idf = 0.0;
-        StringBuilder output = new StringBuilder();
+        int docCount = 0;
 
-        for (Text val : values) {
-            String[] docData = val.toString().split(";");
-            if (docData.length > 0) {
-                for (String doc : docData) {
-                    String[] docParts = doc.split(":");
-                    if (docParts.length == 2) {
-                        String docId = docParts[0].trim();
-                        int tf = Integer.parseInt(docParts[1].trim());
-                        double tfIdf = (1 + Math.log10(tf)) * idf;
-                        output.append(docId).append(": ").append(tfIdf).append("; ");
-                    }
-                }
-            }
+        // Use an explicit iterator to count documents
+        Iterator<Text> iterator = values.iterator();
+        while (iterator.hasNext()) {
+            iterator.next();  // Move to the next value
+            docCount++;
         }
 
-        result.set(output.toString().trim());
+        // Compute IDF using log10(N / DF), assuming N = 10 documents
+        double idf = 0.0;
+        if (docCount > 0) {
+            idf = Math.log10(10.0 / docCount);  // Avoid division by zero if docCount is zero
+        }
+
+        // Set the result as the IDF value
+        result.set(String.valueOf(idf));
+
+        // Write the term and its IDF value to the context
         context.write(key, result);
     }
 }
