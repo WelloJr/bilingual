@@ -1,41 +1,26 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 
-public class TFIDFMapper extends Mapper<Object, Text, Text, Text> {
-    private Text term = new Text();
-    private Text docAndTfIdf = new Text();
+public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
+    private Text result = new Text();
 
     @Override
-    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        // Each line is in the form of term \t doc1:TF ; doc2:TF ; ...
-        String line = value.toString().trim();
-        String[] parts = line.split("\\t");
+    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        // StringBuilder to hold the final TF-IDF output
+        StringBuilder output = new StringBuilder();
 
-        String termText = parts[0]; // The term (e.g., "angels")
-        String docData = parts[1];  // The docID and corresponding TF values
-
-        String[] docs = docData.split(";");
-
-        // For each document for this term, get the TF and IDF
-        for (String doc : docs) {
-            String[] docParts = doc.split(":");
-            String docId = docParts[0].trim();
-            double tf = Double.parseDouble(docParts[1].trim());
-
-            // Get the IDF for this term (assumes IDF is available in context)
-            double idf = 0.0;
-            // IDF should be retrieved from the IDF output (this can be done via distributed cache or joining steps in the mapper)
-
-            double tfIdf = tf * idf;  // Multiply TF and IDF to get TF-IDF
-
-            // Emit term and doc with the corresponding TF-IDF value
-            term.set(termText);
-            docAndTfIdf.set(docId + ":" + tfIdf);
-            context.write(term, docAndTfIdf);
+        // For each document for the term, append the TF-IDF value
+        for (Text val : values) {
+            String docAndTfIdf = val.toString().trim();
+            output.append(docAndTfIdf).append("; ");
         }
+
+        // Remove the trailing space and write the output
+        result.set(output.toString().trim());
+        context.write(key, result);  // Emit the term and its TF-IDF values for each document
     }
 }
