@@ -1,20 +1,30 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 
-public class TFIDFMapper extends Mapper<Object, Text, Text, Text> {
-    private Text term = new Text();
-    private Text docAndTfIdf = new Text();
+public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
+    private Text result = new Text();
 
     @Override
-    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        String line = value.toString().trim();
-        String[] parts = line.split("\\t", 2);
-        term.set(parts[0]);
-        docAndTfIdf.set(parts[1]);
-        context.write(term, docAndTfIdf);
+    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        double idf = 0.0;
+        StringBuilder output = new StringBuilder();
+
+        for (Text val : values) {
+            String[] docData = val.toString().split(";");
+            for (String doc : docData) {
+                String[] docParts = doc.split(":");
+                String docId = docParts[0];
+                int tf = Integer.parseInt(docParts[1]);
+                double tfIdf = (1 + Math.log10(tf)) * idf;
+                output.append(docId).append(":").append(tfIdf).append("; ");
+            }
+        }
+
+        result.set(output.toString().trim());
+        context.write(key, result);
     }
 }
