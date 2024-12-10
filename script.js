@@ -15,6 +15,7 @@ public class TFReducer extends Reducer<Text, Text, Text, Text> {
         // Map to store term frequencies across all documents
         Map<String, Integer> docFrequencyMap = new HashMap<>();
 
+        // Populate the map with actual term frequencies from the values
         for (Text val : values) {
             String[] parts = val.toString().split(":");
             String docId = parts[0].trim();
@@ -26,10 +27,11 @@ public class TFReducer extends Reducer<Text, Text, Text, Text> {
         StringBuilder output = new StringBuilder();
         for (int docId = 1; docId <= 10; docId++) {
             String docKey = "doc" + docId;
-            int freq = docFrequencyMap.getOrDefault(docKey, 0);  // Default to 0 if document is absent
+            int freq = docFrequencyMap.containsKey(docKey) ? docFrequencyMap.get(docKey) : 0; // Replace getOrDefault
             output.append(docKey).append(":").append(freq).append("; ");
         }
 
+        // Set and write the result
         result.set(output.toString().trim());
         context.write(key, result);
     }
