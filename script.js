@@ -1,30 +1,26 @@
-TF Mapper
 import java.io.IOException;
-import org.apache.hadoop.io.IntWritable;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
-public class TFMapper extends Mapper<Object, Text, Text, Text> {
-    private Text word = new Text();
+public class TFReducer extends Reducer<Text, Text, Text, Text> {
+    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        // Input: <term, [docID:freq, docID:freq, ...]>
+        Map<String, String> docFrequency = new HashMap<>();
 
-    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        // Input: < term docID: freq ; docID: freq ; ... >
-        String line = value.toString();
-        String[] parts = line.split("<");
-        if (parts.length == 2) {
-            String term = parts[0].trim();
-            String postings = parts[1].trim().replaceAll("[<>]", ""); // Remove < and >
-            String[] docs = postings.split(";");
-
-            for (String doc : docs) {
-                String[] docFreq = doc.trim().split(":");
-                if (docFreq.length == 2) {
-                    String docID = docFreq[0].trim();
-                    String freq = docFreq[1].trim();
-                    word.set(term);
-                    context.write(word, new Text(docID + ":" + freq));
-                }
-            }
+        for (Text val : values) {
+            String[] docFreq = val.toString().split(":");
+            String docID = docFreq[0];
+            String freq = docFreq[1];
+            docFrequency.put(docID, freq);
         }
+
+        // Output in matrix form
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= 10; i++) { // Assuming 10 documents
+            sb.append(docFrequency.getOrDefault("doc" + i, "0")).append("\t");
+        }
+        context.write(key, new Text(sb.toString().trim()));
     }
 }
