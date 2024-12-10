@@ -12,9 +12,9 @@ public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
         int docCount = 0;
 
-        // Count how many documents contain this term
-        for (Text ignored : values) {
-            docCount++; // Simply count the number of values (documents)
+        // Simply count the number of documents
+        for (Text value : values) {
+            docCount++;  // Increment for each document
         }
 
         int totalDocuments = 10;  // Assuming 10 documents in the corpus
