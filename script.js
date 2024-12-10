@@ -1,21 +1,18 @@
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
+import java.io.IOException;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.Reducer;
 
-public class TFDriver {
-    public static void main(String[] args) throws Exception {
-        Configuration conf = new Configuration();
-        Job job = new Job(conf, "Term Frequency"); // Job instantiation for Java 7
-        job.setJarByClass(TFDriver.class);
-        job.setMapperClass(TFMapper.class);
-        job.setReducerClass(TFReducer.class);
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
-        FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
-        System.exit(job.waitForCompletion(true) ? 0 : 1);
+public class IDFReducer extends Reducer<Text, IntWritable, Text, Text> {
+    private static final int TOTAL_DOCS = 10;
+
+    public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+        int docCount = 0;
+        for (IntWritable val : values) {
+            docCount += val.get();
+        }
+
+        double idf = Math.log((double) TOTAL_DOCS / docCount);
+        context.write(key, new Text(String.valueOf(idf)));
     }
 }
