@@ -1,30 +1,36 @@
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
+import java.io.IOException;
+import java.util.HashMap;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.Reducer;
 
-public class TFIDFDriver {
-    public static void main(String[] args) throws Exception {
-        if (args.length < 3) {
-            System.err.println("Usage: TFIDFDriver <TF input path> <IDF input path> <output path>");
-            System.exit(-1);
+public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
+    private Text outputKey = new Text();
+    private Text outputValue = new Text();
+
+    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        // Input: <term, [TF@docID=TF, IDF=value]>
+        double idf = 0.0;
+        HashMap<String, Double> tfMap = new HashMap<>();
+
+        // Parse TF and IDF values
+        for (Text value : values) {
+            String val = value.toString();
+            if (val.startsWith("TF@")) {
+                String[] parts = val.split("=");
+                String docID = parts[0].substring(3); // Extract docID
+                double tf = Double.parseDouble(parts[1]); // Extract TF
+                tfMap.put(docID, tf);
+            } else if (val.startsWith("IDF=")) {
+                idf = Double.parseDouble(val.split("=")[1]); // Extract IDF
+            }
         }
 
-        Configuration conf = new Configuration();
-        Job job = new Job(conf, "TF-IDF Calculation");
-        job.setJarByClass(TFIDFDriver.class);
-        job.setMapperClass(TFIDFMapper.class);
-        job.setReducerClass(TFIDFReducer.class);
-
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
-
-        FileInputFormat.addInputPath(job, new Path(args[0])); // TF Input
-        FileInputFormat.addInputPath(job, new Path(args[1])); // IDF Input
-        FileOutputFormat.setOutputPath(job, new Path(args[2]));
-
-        System.exit(job.waitForCompletion(true) ? 0 : 1);
+        // Calculate TF-IDF and emit results
+        for (String docID : tfMap.keySet()) {
+            double tfidf = tfMap.get(docID) * idf;
+            outputKey.set(docID);
+            outputValue.set(key.toString() + ":" + tfidf); // <docID, term:TFIDF>
+            context.write(outputKey, outputValue);
+        }
     }
 }
