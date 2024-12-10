@@ -1,38 +1,53 @@
-package mapper;
+package reducer;
 
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;  // Make sure to import HashMap
 
-public class PositionalIndexMapper extends Mapper<LongWritable, Text, Text, Text> {
-    private Text term = new Text();
-    private Text docPos = new Text();
-    private String docID;
-
+public class PositionalIndexReducer extends Reducer<Text, Text, Text, Text> {
     @Override
-    protected void setup(Context context) throws IOException, InterruptedException {
-        // Extract the document ID from the file name
-        FileSplit fileSplit = (FileSplit) context.getInputSplit();
-        String fileName = fileSplit.getPath().getName();
-        docID = fileName.split("\\.")[0];  // Extract the file name without the extension (e.g., "1" from "1.txt")
-    }
+    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        // Map to store document IDs and positions
+        Map<String, List<String>> positionalMap = new HashMap<>();
 
-    @Override
-    protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-        // Get the content of the document
-        String content = value.toString();
+        // Process each value (docID:position)
+        for (Text value : values) {
+            String[] docAndPos = value.toString().split(":"); // Split into docID and position
+            String docID = docAndPos[0];
+            String position = docAndPos[1];
 
-        // Split the content into words (terms)
-        String[] words = content.split("\\s+");
-
-        // Emit each word with its position in the document
-        for (int i = 0; i < words.length; i++) {
-            term.set(words[i].toLowerCase().replaceAll("[^a-zA-Z0-9]", "")); // Normalize word by removing non-alphanumeric characters
-            docPos.set(docID + ":" + (i + 1)); // Format: docID:position (e.g., "1:1", "1:2")
-            context.write(term, docPos); // Emit the term and its position
+            // Add position to the respective docID list in the map
+            if (!positionalMap.containsKey(docID)) {
+                positionalMap.put(docID, new ArrayList<String>()); // Explicitly declare ArrayList<String>
+            }
+            positionalMap.get(docID).add(position);
         }
+
+        // Prepare output in the required format
+        StringBuilder formattedOutput = new StringBuilder("< ");
+        formattedOutput.append(key.toString()); // Append the term (key)
+
+        // Loop over the positional map to add docID and positions
+        for (Map.Entry<String, List<String>> entry : positionalMap.entrySet()) {
+            formattedOutput.append(" doc").append(entry.getKey()).append(": ");
+            // Manually join the positions in the list
+            List<String> positions = entry.getValue();
+            for (int i = 0; i < positions.size(); i++) {
+                formattedOutput.append(positions.get(i));
+                if (i < positions.size() - 1) {
+                    formattedOutput.append(", ");
+                }
+            }
+            formattedOutput.append(" ; ");
+        }
+        formattedOutput.append(">");
+
+        // Write output to context
+        context.write(key, new Text(formattedOutput.toString()));
     }
 }
