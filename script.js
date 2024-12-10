@@ -12,30 +12,38 @@ public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
 
     @Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        double idf = 0.0;
-        Map<String, Integer> termFrequencies = new HashMap<>();
+        // Map to store TF-IDF scores for documents
+        Map<String, Double> tfIdfMap = new HashMap<>();
 
-        // Separate TF and IDF inputs
+        // Retrieve IDF for the term from the values
+        double idf = 0.0;
+        Map<String, Integer> tfMap = new HashMap<>();
+
         for (Text val : values) {
-            String[] parts = val.toString().split(":");
-            if (parts.length == 2 && parts[0].startsWith("idf")) {
-                idf = Double.parseDouble(parts[1].trim());
-            } else {
-                String docId = parts[0].trim();
-                int tf = Integer.parseInt(parts[1].trim());
-                termFrequencies.put(docId, tf);
+            String[] parts = val.toString().split(";");
+            for (String docEntry : parts) {
+                String[] docParts = docEntry.split(":");
+                if (docParts.length == 2) {
+                    String docId = docParts[0].trim();
+                    int tf = Integer.parseInt(docParts[1].trim());
+                    tfMap.put(docId, tf);
+                } else {
+                    idf = Double.parseDouble(docEntry.trim());
+                }
             }
         }
 
-        // Multiply TF by IDF for each document
+        // Calculate TF-IDF for all documents
         StringBuilder output = new StringBuilder();
         for (int docId = 1; docId <= 10; docId++) {
             String docKey = "doc" + docId;
-            int tf = termFrequencies.getOrDefault(docKey, 0);
-            double tfidf = tf * idf;
-            output.append(docKey).append(":").append(String.format("%.6f", tfidf)).append("; ");
+            int tf = tfMap.containsKey(docKey) ? tfMap.get(docKey) : 0; // Replace getOrDefault
+            double tfIdf = tf * idf;
+            tfIdfMap.put(docKey, tfIdf);
+            output.append(docKey).append(":").append(tfIdf).append("; ");
         }
 
+        // Write the result for the term
         result.set(output.toString().trim());
         context.write(key, result);
     }
