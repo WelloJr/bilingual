@@ -1,31 +1,20 @@
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
-public class TFMapper extends Mapper<Object, Text, Text, IntWritable> {
+public class TFReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
 
-    private Text word = new Text();
-    private IntWritable count = new IntWritable(1);
+    private IntWritable result = new IntWritable();
 
-    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        // Input format: <term doc1:position1, position2 ... ; doc2:position1, ... ; >
-        String line = value.toString();
-        String[] parts = line.split("<");
-        
-        if (parts.length == 2) {
-            String term = parts[0].trim();
-            String docs = parts[1].trim().replaceAll("[<>]", ""); // Remove < and >
-            String[] docList = docs.split(";");
-
-            for (String doc : docList) {
-                String[] docTerm = doc.trim().split(":");
-                String docID = docTerm[0].trim();
-                int frequency = Integer.parseInt(docTerm[1].trim());
-                
-                word.set(term + "@" + docID);
-                context.write(word, count);
-            }
+    public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+        int sum = 0;
+        for (IntWritable val : values) {
+            sum += val.get();
         }
+        result.set(sum);
+        context.write(key, result);
     }
 }
