@@ -12,9 +12,10 @@ public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
         int docCount = 0;
 
-        // Iterate through the values to count the number of documents
+        // Iterate through the values to count the number of unique documents
         for (Text value : values) {
-            docCount++;  // We are counting the number of documents, no need to use 'value'
+            // We don't need to process the value, just count the number of documents (DF)
+            docCount++;
         }
 
         // Compute IDF using log10(N / DF), assuming N = 10 documents
