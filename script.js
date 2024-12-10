@@ -1,6 +1,5 @@
 package part2;
 
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -11,7 +10,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-public class PartTwoDriver extends Configured implements Tool {
+public class PartTwoDriver extends org.apache.hadoop.conf.Configured implements Tool {
 
     public static void main(String[] args) throws Exception {
         int exitCode = ToolRunner.run(new Configuration(), new PartTwoDriver(), args);
@@ -26,6 +25,17 @@ public class PartTwoDriver extends Configured implements Tool {
         }
 
         Configuration conf = getConf();
+        FileSystem fs = FileSystem.get(conf);
+
+        // Cleanup logic: Ensure intermediate and output directories are cleared before starting
+        Path intermediatePath = new Path(args[1]);
+        Path outputPath = new Path(args[2]);
+        if (fs.exists(intermediatePath)) {
+            fs.delete(intermediatePath, true);
+        }
+        if (fs.exists(outputPath)) {
+            fs.delete(outputPath, true);
+        }
 
         // Step 1: Run TF Job
         Job tfJob = Job.getInstance(conf, "Term Frequency Calculation");
