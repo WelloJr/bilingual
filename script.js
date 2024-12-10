@@ -18,11 +18,10 @@ public class IDFDriver {
         // Set the total number of documents as a configuration parameter
         conf.set("totalDocuments", args[2]);
 
-        // Initialize the Job object with the Configuration and job name
-        Job job = new Job(conf);
-        job.setJobName("IDF Calculation"); // Explicitly set the job name
+        // Use the older Job constructor with Configuration and job name
+        Job job = new Job(conf, "IDF Calculation");
 
-        // Specify the jar class
+        // Specify the jar class for the job
         job.setJarByClass(IDFDriver.class);
 
         // Set the Mapper and Reducer classes
@@ -37,7 +36,7 @@ public class IDFDriver {
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
-        // Exit after job completion
+        // Run the job and exit upon completion
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
