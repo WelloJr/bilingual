@@ -1,5 +1,6 @@
 package part2;
 
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -9,7 +10,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-public class PartTwoDriver extends Configuration implements Tool {
+public class PartTwoDriver extends Configured implements Tool {
     public static void main(String[] args) throws Exception {
         int exitCode = ToolRunner.run(new Configuration(), new PartTwoDriver(), args);
         System.exit(exitCode);
