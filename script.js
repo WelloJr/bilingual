@@ -4,34 +4,33 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
+import java.util.HashSet;
 
-public class TFMapper extends Mapper<Object, Text, Text, Text> {
+public class IDFMapper extends Mapper<Object, Text, Text, Text> {
 
     private Text term = new Text();
-    private Text docAndCount = new Text();
+    private Text docId = new Text();
 
     @Override
     protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        // Parse the line for term and document data
         String line = value.toString().trim();
+        String[] parts = line.split("\\s+", 2);
+        String termText = parts[0];
+        String docData = parts[1];
 
-        // Check if the line is properly formatted
-        if (line.startsWith("<") && line.endsWith(">")) {
-            String content = line.substring(1, line.length() - 1).trim();  // Remove the '< >'
-            String[] parts = content.split("\\s+", 2);  // Split the term and document data
+        // Use a HashSet to avoid duplicate documents
+        HashSet<String> uniqueDocs = new HashSet<>();
+        String[] docs = docData.split(";");
+        for (String doc : docs) {
+            String docIdPart = doc.split(":")[0];  // Extract docId
+            uniqueDocs.add(docIdPart);  // Add unique docIds to the set
+        }
 
-            String termText = parts[0];
-            String docData = parts[1];
-
-            // Split the docData by ';' to handle multiple documents
-            String[] docs = docData.split(";");
-            for (String doc : docs) {
-                String docId = doc.split(":")[0].trim();  // Extract docId
-                int count = doc.split(":")[1].split(",").length;  // Count positions
-                term.set(termText);  // Set the term
-                docAndCount.set(docId + ":" + count);  // Set docId and count
-                context.write(term, docAndCount);  // Emit the term and document with its count
-            }
+        // Emit each term and document ID pair for further processing
+        for (String uniqueDoc : uniqueDocs) {
+            term.set(termText);
+            docId.set(uniqueDoc);
+            context.write(term, docId);  // Emit the term and document ID pair
         }
     }
 }
