@@ -4,47 +4,25 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
-public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
+public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     private Text result = new Text();
 
     @Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        double idf = 0.0;
-        Map<String, Integer> tfMap = new HashMap<>();
+        int docCount = 0;
 
-        // Separate TF and IDF data
-        for (Text val : values) {
-            String value = val.toString();
-            if (value.contains("|")) {
-                // Extract IDF value
-                String[] parts = value.split("\\|");
-                idf = Double.parseDouble(parts[1].trim());
-            } else {
-                // Extract TF data
-                String[] docData = value.split(";");
-                for (String doc : docData) {
-                    String[] docParts = doc.split(":");
-                    String docId = docParts[0].trim();
-                    int tf = Integer.parseInt(docParts[1].trim());
-                    tfMap.put(docId, tf);
-                }
-            }
+        // Count the number of documents where the term appears
+        for (@SuppressWarnings("unused") Text ignored : values) {
+            docCount++;
         }
 
-        // Calculate TF-IDF for each document
-        StringBuilder tfidfOutput = new StringBuilder();
-        for (int docId = 1; docId <= 10; docId++) {
-            String docKey = "doc" + docId;
-            int tf = tfMap.containsKey(docKey) ? tfMap.get(docKey) : 0;
-            double tfidf = tf * idf; // TF-IDF = TF * IDF
-            tfidfOutput.append(docKey).append(":").append(tfidf).append("; ");
-        }
+        // Calculate IDF using the formula: log(N / DF)
+        int totalDocs = 10; // Total number of documents
+        double idf = Math.log10((double) totalDocs / docCount);
 
-        // Write the TF-IDF output to context
-        result.set(tfidfOutput.toString().trim());
+        // Emit the term with DF and IDF
+        result.set(docCount + " | " + idf);
         context.write(key, result);
     }
 }
