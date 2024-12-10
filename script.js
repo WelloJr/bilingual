@@ -1,33 +1,33 @@
 import java.io.IOException;
+import java.util.HashMap;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
-public class TFIDFMapper extends Mapper<Object, Text, Text, Text> {
+public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
 
-    private Text outputKey = new Text();
     private Text outputValue = new Text();
 
-    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        // Input: <term@docID, TF> from TF
-        // Input: <term, IDF> from IDF
-        String line = value.toString();
-        String[] parts = line.split("\\t");
+    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        double idf = 0;
+        HashMap<String, Double> tfMap = new HashMap<String, Double>();
 
-        if (parts.length == 2) {
-            String term = parts[0];
-            String data = parts[1];
-
-            if (data.contains("=")) {
-                // TF Input: <term@docID, TF>
-                String[] termDoc = term.split("@");
-                outputKey.set(termDoc[0]);
-                outputValue.set("TF@" + termDoc[1] + "=" + data);
-            } else {
-                // IDF Input: <term, IDF>
-                outputKey.set(term);
-                outputValue.set("IDF=" + data);
+        for (Text val : values) {
+            String value = val.toString();
+            if (value.startsWith("TF@")) {
+                String[] termDoc = value.split("=");
+                String docID = termDoc[0].substring(3); // Extract docID
+                double tf = Double.parseDouble(termDoc[1]);
+                tfMap.put(docID, tf);
+            } else if (value.startsWith("IDF=")) {
+                idf = Double.parseDouble(value.split("=")[1]);
             }
-            context.write(outputKey, outputValue);
+        }
+
+        // Calculate TF-IDF for each document
+        for (String docID : tfMap.keySet()) {
+            double tfidf = tfMap.get(docID) * idf;
+            outputValue.set(String.valueOf(tfidf));
+            context.write(new Text(key.toString() + "@" + docID), outputValue);
         }
     }
 }
