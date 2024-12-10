@@ -1,30 +1,67 @@
 package part2;
 
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
-import java.io.IOException;
+public class PartTwoDriver extends Configured implements Tool {
 
-public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
-    private Text result = new Text();
+    public static void main(String[] args) throws Exception {
+        int exitCode = ToolRunner.run(new Configuration(), new PartTwoDriver(), args);
+        System.exit(exitCode);
+    }
 
     @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        double idf = 0.0;
-        StringBuilder output = new StringBuilder();
-
-        for (Text val : values) {
-            String[] docData = val.toString().split(";");
-            for (String doc : docData) {
-                String[] docParts = doc.split(":");
-                String docId = docParts[0];
-                int tf = Integer.parseInt(docParts[1]);
-                double tfIdf = (1 + Math.log10(tf)) * idf;
-                output.append(docId).append(":").append(tfIdf).append("; ");
-            }
+    public int run(String[] args) throws Exception {
+        if (args.length != 3) {
+            System.err.println("Usage: PartTwoDriver <input path> <intermediate path> <output path>");
+            return -1;
         }
 
-        result.set(output.toString().trim());
-        context.write(key, result);
+        Configuration conf = getConf();
+
+        // Step 1: Run TF Job
+        Job tfJob = Job.getInstance(conf, "Term Frequency Calculation");
+        tfJob.setJarByClass(PartTwoDriver.class);
+        tfJob.setMapperClass(TFMapper.class);
+        tfJob.setReducerClass(TFReducer.class);
+        tfJob.setOutputKeyClass(Text.class);
+        tfJob.setOutputValueClass(Text.class);
+        FileInputFormat.addInputPath(tfJob, new Path(args[0]));
+        FileOutputFormat.setOutputPath(tfJob, new Path(args[1] + "_tf"));
+        if (!tfJob.waitForCompletion(true)) {
+            return 1;
+        }
+
+        // Step 2: Run IDF Job
+        Job idfJob = Job.getInstance(conf, "Inverse Document Frequency Calculation");
+        idfJob.setJarByClass(PartTwoDriver.class);
+        idfJob.setMapperClass(IDFMapper.class);
+        idfJob.setReducerClass(IDFReducer.class);
+        idfJob.setOutputKeyClass(Text.class);
+        idfJob.setOutputValueClass(Text.class);
+        FileInputFormat.addInputPath(idfJob, new Path(args[1] + "_tf"));
+        FileOutputFormat.setOutputPath(idfJob, new Path(args[1] + "_idf"));
+        if (!idfJob.waitForCompletion(true)) {
+            return 1;
+        }
+
+        // Step 3: Run TFIDF Job
+        Job tfidfJob = Job.getInstance(conf, "TFIDF Calculation");
+        tfidfJob.setJarByClass(PartTwoDriver.class);
+        tfidfJob.setMapperClass(TFIDFMapper.class);
+        tfidfJob.setReducerClass(TFIDFReducer.class);
+        tfidfJob.setOutputKeyClass(Text.class);
+        tfidfJob.setOutputValueClass(Text.class);
+        FileInputFormat.addInputPath(tfidfJob, new Path(args[1] + "_idf"));
+        FileOutputFormat.setOutputPath(tfidfJob, new Path(args[2]));
+        return tfidfJob.waitForCompletion(true) ? 0 : 1;
     }
 }
