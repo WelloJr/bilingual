@@ -1,33 +1,40 @@
-import java.io.IOException;
-import java.util.HashMap;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
-
-    private Text outputValue = new Text();
-
-    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        double idf = 0;
-        HashMap<String, Double> tfMap = new HashMap<String, Double>();
-
-        for (Text val : values) {
-            String value = val.toString();
-            if (value.startsWith("TF@")) {
-                String[] termDoc = value.split("=");
-                String docID = termDoc[0].substring(3); // Extract docID
-                double tf = Double.parseDouble(termDoc[1]);
-                tfMap.put(docID, tf);
-            } else if (value.startsWith("IDF=")) {
-                idf = Double.parseDouble(value.split("=")[1]);
-            }
+public class TFDriver {
+    public static void main(String[] args) throws Exception {
+        if (args.length != 2) {
+            System.err.println("Usage: TFDriver <input path> <output path>");
+            System.exit(-1);
         }
 
-        // Calculate TF-IDF for each document
-        for (String docID : tfMap.keySet()) {
-            double tfidf = tfMap.get(docID) * idf;
-            outputValue.set(String.valueOf(tfidf));
-            context.write(new Text(key.toString() + "@" + docID), outputValue);
-        }
+        // Create a Configuration object
+        Configuration conf = new Configuration();
+
+        // Initialize the job
+        Job job = new Job(conf, "Term Frequency");
+
+        // Set the jar class
+        job.setJarByClass(TFDriver.class);
+
+        // Set the Mapper and Reducer classes
+        job.setMapperClass(TFMapper.class);
+        job.setReducerClass(TFReducer.class);
+
+        // Set the output key and value types
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        // Set the input and output paths
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        // Exit after job completion
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
