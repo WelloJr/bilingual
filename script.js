@@ -1,42 +1,37 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
-public class TFReducer extends Reducer<Text, Text, Text, Text> {
-    private Text result = new Text();
+public class IDFMapper extends Mapper<Object, Text, Text, Text> {
+    private Text term = new Text();
+    private Text docId = new Text();
 
     @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        Map<String, Integer> docFrequencyMap = new HashMap<>();
-        int df = 0;
-
-        // Populate map with actual term frequencies from the values
-        for (Text val : values) {
-            String[] parts = val.toString().split(":");
-            String docId = parts[0].trim();
-            int count = Integer.parseInt(parts[1].trim());
-            docFrequencyMap.put(docId, count);
-
-            if (count > 0) {
-                df++;
-            }
+    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        String line = value.toString().trim();
+        String[] parts = line.split("\\| DF:");
+        if (parts.length < 2) {
+            return; // Skip malformed lines
         }
 
-        // StringBuilder to hold the final TF output
-        StringBuilder output = new StringBuilder();
-        for (int docId = 1; docId <= 10; docId++) {
-            String docKey = "doc" + docId;
-            int freq = docFrequencyMap.containsKey(docKey) ? docFrequencyMap.get(docKey) : 0;
-            output.append(docKey).append(":").append(freq).append("; ");
+        String termData = parts[0].trim();
+        String dfData = parts[1].trim();
+        int df = Integer.parseInt(dfData);
+
+        if (df == 0) {
+            return; // Ignore terms with DF = 0
         }
 
-        // Emit the DF as part of the value but don't display it
-        result.set(output.toString().trim() + "| DF:" + df);
-        context.write(key, result);
+        String[] termParts = termData.split("\\t", 2);
+        if (termParts.length < 2) {
+            return;
+        }
+
+        term.set(termParts[0].trim()); // Term
+        docId.set(termParts[1].trim()); // DocId and TF data
+        context.write(term, docId);
     }
 }
