@@ -5,32 +5,25 @@ import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 
-public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
+public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     private Text result = new Text();
 
     @Override
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        double idf = 0.0; // Placeholder for IDF
-        StringBuilder output = new StringBuilder();
+        int docCount = 0;
 
-        for (Text val : values) {
-            String[] docData = val.toString().split(";");
-            if (docData.length > 0) {
-                for (String doc : docData) {
-                    String[] docParts = doc.split(":");
-                    if (docParts.length == 2) {
-                        String docId = docParts[0].trim();
-                        int tf = Integer.parseInt(docParts[1].trim());
-
-                        // Compute TF-IDF
-                        double tfIdf = (1 + Math.log10(tf)) * idf;
-                        output.append(docId).append(": ").append(tfIdf).append("; ");
-                    }
-                }
-            }
+        // Count the number of unique documents
+        for (Text ignored : values) {
+            docCount++;
         }
 
-        result.set(output.toString().trim());
+        // Compute IDF using log10(N / DF), assuming N = 10 documents
+        double idf = Math.log10(10.0 / docCount);
+
+        // Format output to include DF for debugging purposes
+        String output = docCount + " | " + idf;
+        result.set(output);
+
         context.write(key, result);
     }
 }
