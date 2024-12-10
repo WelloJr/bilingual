@@ -12,16 +12,15 @@ public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
         int docCount = 0;
 
-        // Manually iterate over the values to count the number of documents (DF)
-        for (Text value : values) {
-            // We don't need to do anything with the value here
-            docCount++;
+        // Iterate over the values, just counting the occurrences
+        for (Text ignored : values) {
+            docCount++;  // Increment count for each document
         }
 
-        // Compute IDF using the formula: IDF = log(N / DF)
-        double idf = Math.log10(10.0 / docCount);  // Assume 10 total documents
+        // Calculate IDF (assuming 10 total documents, replace if needed)
+        double idf = Math.log10(10.0 / docCount); // Assuming N = 10 documents
 
-        // Set the IDF result for the term
+        // Set the IDF result for the current term
         result.set(String.valueOf(idf));
 
         // Output the term and its IDF value
