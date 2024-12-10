@@ -1,48 +1,48 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
-public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
-    private Text result = new Text();
+public class TFMapper extends Mapper<Object, Text, Text, Text> {
+    private Text term = new Text();
+    private Text docAndCount = new Text();
 
     @Override
-    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-        // Create a map to hold the TF and IDF values for each document
-        Map<String, Double> tfMap = new HashMap<>();
-        double idf = 0.0;
+    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        String line = value.toString().trim();
+        if (line.startsWith("<") && line.endsWith(">")) {
+            String content = line.substring(1, line.length() - 1).trim();
+            String[] parts = content.split("\\s+", 2);
+            String termText = parts[0];
+            String docData = parts[1];
 
-        // First, split values into TF and IDF
-        for (Text val : values) {
-            String[] parts = val.toString().split(":");
-
-            // If the value is in the form docId:TF, store it in the TF map
-            if (parts.length == 2) {
-                String docId = parts[0].trim();
-                double tf = Double.parseDouble(parts[1].trim());
-                tfMap.put(docId, tf);
+            String[] docs = docData.split(";");
+            for (String doc : docs) {
+                String docId = doc.split(":")[0].trim();
+                int count = doc.split(":")[1].split(",").length;
+                term.set(termText);
+                docAndCount.set(docId + ":" + count);
+                context.write(term, docAndCount);
             }
-            // Otherwise, it's the IDF value, so store it
-            else if (parts.length == 1) {
-                idf = Double.parseDouble(parts[0].trim());
+
+            // Emit 0 for all other documents that don't contain the term
+            for (int docId = 1; docId <= 10; docId++) {
+                String docKey = "doc" + docId;
+                boolean found = false;
+                for (String doc : docs) {
+                    if (doc.split(":")[0].equals(docKey)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    term.set(termText);
+                    docAndCount.set(docKey + ":0");
+                    context.write(term, docAndCount);
+                }
             }
         }
-
-        // Now calculate the TF-IDF for each document
-        StringBuilder output = new StringBuilder();
-        for (Map.Entry<String, Double> entry : tfMap.entrySet()) {
-            String docId = entry.getKey();
-            double tf = entry.getValue();
-            double tfIdf = tf * idf; // Calculate TF-IDF
-            output.append(docId).append(":").append(tfIdf).append("; ");
-        }
-
-        // Write the result
-        result.set(output.toString().trim());
-        context.write(key, result);  // Emit the term and its TF-IDF for each document
     }
 }
