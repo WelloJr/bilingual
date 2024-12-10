@@ -1,27 +1,30 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 
-public class IDFMapper extends Mapper<Object, Text, Text, Text> {
-    private Text term = new Text();
-    private Text docId = new Text();
+public class IDFReducer extends Reducer<Text, Text, Text, Text> {
+    private Text result = new Text();
 
     @Override
-    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        String line = value.toString().trim();
-        String[] parts = line.split("\\s+", 2);
-        String termText = parts[0];
-        String docData = parts[1];
+    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        int docCount = 0;
 
-        String[] docs = docData.split(";");
-        for (String doc : docs) {
-            String docIdPart = doc.split(":")[0];
-            term.set(termText);
-            docId.set(docIdPart);
-            context.write(term, docId);
+        for (Text val : values) {
+            if (val != null) {
+                docCount++;
+            }
         }
+
+        int totalDocuments = 10; // Adjust if the dataset size changes
+        double idf = 0.0;
+        if (docCount > 0) {
+            idf = Math.log10((double) totalDocuments / docCount);  // Compute IDF
+        }
+
+        result.set(String.valueOf(idf));
+        context.write(key, result);
     }
 }
