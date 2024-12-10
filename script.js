@@ -1,51 +1,38 @@
 package part2;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-public class TFIDFMapper extends Mapper<Object, Text, Text, Text> {
-    private Text term = new Text();
-    private Text docAndTfIdf = new Text();
+public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
+    private Text result = new Text();
 
     @Override
-    protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-        // Each line is in the form of term \t doc1:TF ; doc2:TF ; ...
-        String line = value.toString().trim();
-        String[] parts = line.split("\\t");
+    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        // Create a map to hold the TF and IDF values for each document
+        Map<String, Double> tfMap = new HashMap<>();
+        double idf = 0.0;
 
-        // Ensure that the line has both the term and document frequency data
-        if (parts.length < 2) {
-            return;  // Skip lines that don't have both term and doc data
-        }
+        // First, split values into TF and IDF
+        for (Text val : values) {
+            String[] parts = val.toString().split(":");
 
-        String termText = parts[0]; // The term (e.g., "angels")
-        String docData = parts[1];  // The docID and corresponding TF values
-
-        String[] docs = docData.split(";");
-
-        // For each document for this term, get the TF and IDF
-        for (String doc : docs) {
-            String[] docParts = doc.split(":");
-            
-            // Ensure we have both docId and TF value
-            if (docParts.length != 2) {
-                continue;  // Skip any doc data that's incorrectly formatted
+            // If the value is in the form docId:TF, store it in the TF map
+            if (parts.length == 2) {
+                String docId = parts[0].trim();
+                double tf = Double.parseDouble(parts[1].trim());
+                tfMap.put(docId, tf);
             }
-
-            String docId = docParts[0].trim();
-            double tf = Double.parseDouble(docParts[1].trim());
-
-            // Get the IDF for this term (assumes IDF is available in context)
-            double idf = 0.0;  // Placeholder, IDF value should come from the IDF output
-
-            double tfIdf = tf * idf;  // Multiply TF and IDF to get TF-IDF
-
-            // Emit term and doc with the corresponding TF-IDF value
-            term.set(termText);
-            docAndTfIdf.set(docId + ":" + tfIdf);
-            context.write(term, docAndTfIdf);
+            // Otherwise, it's the IDF value, so store it
+            else if (parts.length == 1) {
+                idf = Double.parseDouble(parts[0].trim());
+            }
         }
-    }
-}
+
+        // Now calculate the TF-IDF for each document
+        StringBuilder output = new StringBuilder();
+        for (Map.Entry<String, Double> entry : tfMap.entrySet()) {
+  
