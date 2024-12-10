@@ -35,4 +35,14 @@ public class TFIDFReducer extends Reducer<Text, Text, Text, Text> {
         // Now calculate the TF-IDF for each document
         StringBuilder output = new StringBuilder();
         for (Map.Entry<String, Double> entry : tfMap.entrySet()) {
-  
+            String docId = entry.getKey();
+            double tf = entry.getValue();
+            double tfIdf = tf * idf; // Calculate TF-IDF
+            output.append(docId).append(":").append(tfIdf).append("; ");
+        }
+
+        // Write the result
+        result.set(output.toString().trim());
+        context.write(key, result);  // Emit the term and its TF-IDF for each document
+    }
+}
