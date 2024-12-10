@@ -1,77 +1,38 @@
-package part2;
+package mapper;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.util.Tool;
-import org.apache.hadoop.util.ToolRunner;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
-public class PartTwoDriver extends org.apache.hadoop.conf.Configured implements Tool {
+import java.io.IOException;
 
-    public static void main(String[] args) throws Exception {
-        int exitCode = ToolRunner.run(new Configuration(), new PartTwoDriver(), args);
-        System.exit(exitCode);
+public class PositionalIndexMapper extends Mapper<LongWritable, Text, Text, Text> {
+    private Text term = new Text();
+    private Text docPos = new Text();
+    private String docID;
+
+    @Override
+    protected void setup(Context context) throws IOException, InterruptedException {
+        // Extract the document ID from the file name
+        FileSplit fileSplit = (FileSplit) context.getInputSplit();
+        String fileName = fileSplit.getPath().getName();
+        docID = fileName.split("\\.")[0];  // Extract the file name without the extension (e.g., "1" from "1.txt")
     }
 
     @Override
-    public int run(String[] args) throws Exception {
-        if (args.length != 3) {
-            System.err.println("Usage: PartTwoDriver <input path> <intermediate path> <output path>");
-            return -1;
-        }
+    protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+        // Get the content of the document
+        String content = value.toString();
 
-        Configuration conf = getConf();
-        FileSystem fs = FileSystem.get(conf);
+        // Split the content into words (terms)
+        String[] words = content.split("\\s+");
 
-        // Cleanup logic: Ensure intermediate and output directories are cleared before starting
-        Path intermediatePath = new Path(args[1]);
-        Path outputPath = new Path(args[2]);
-        if (fs.exists(intermediatePath)) {
-            fs.delete(intermediatePath, true);
+        // Emit each word with its position in the document
+        for (int i = 0; i < words.length; i++) {
+            term.set(words[i].toLowerCase().replaceAll("[^a-zA-Z0-9]", "")); // Normalize word by removing non-alphanumeric characters
+            docPos.set(docID + ":" + (i + 1)); // Format: docID:position (e.g., "1:1", "1:2")
+            context.write(term, docPos); // Emit the term and its position
         }
-        if (fs.exists(outputPath)) {
-            fs.delete(outputPath, true);
-        }
-
-        // Step 1: Run TF Job
-        Job tfJob = Job.getInstance(conf, "Term Frequency Calculation");
-        tfJob.setJarByClass(PartTwoDriver.class);
-        tfJob.setMapperClass(TFMapper.class);
-        tfJob.setReducerClass(TFReducer.class);
-        tfJob.setOutputKeyClass(Text.class);
-        tfJob.setOutputValueClass(Text.class);
-        FileInputFormat.addInputPath(tfJob, new Path(args[0]));
-        FileOutputFormat.setOutputPath(tfJob, new Path(args[1] + "_tf"));
-        if (!tfJob.waitForCompletion(true)) {
-            return 1;
-        }
-
-        // Step 2: Run IDF Job
-        Job idfJob = Job.getInstance(conf, "Inverse Document Frequency Calculation");
-        idfJob.setJarByClass(PartTwoDriver.class);
-        idfJob.setMapperClass(IDFMapper.class);
-        idfJob.setReducerClass(IDFReducer.class);
-        idfJob.setOutputKeyClass(Text.class);
-        idfJob.setOutputValueClass(Text.class);
-        FileInputFormat.addInputPath(idfJob, new Path(args[1] + "_tf"));
-        FileOutputFormat.setOutputPath(idfJob, new Path(args[1] + "_idf"));
-        if (!idfJob.waitForCompletion(true)) {
-            return 1;
-        }
-
-        // Step 3: Run TFIDF Job
-        Job tfidfJob = Job.getInstance(conf, "TFIDF Calculation");
-        tfidfJob.setJarByClass(PartTwoDriver.class);
-        tfidfJob.setMapperClass(TFIDFMapper.class);
-        tfidfJob.setReducerClass(TFIDFReducer.class);
-        tfidfJob.setOutputKeyClass(Text.class);
-        tfidfJob.setOutputValueClass(Text.class);
-        FileInputFormat.addInputPath(tfidfJob, new Path(args[1] + "_idf"));
-        FileOutputFormat.setOutputPath(tfidfJob, new Path(args[2]));
-        return tfidfJob.waitForCompletion(true) ? 0 : 1;
     }
 }
