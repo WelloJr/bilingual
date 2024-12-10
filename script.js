@@ -12,13 +12,13 @@ public class IDFReducer extends Reducer<Text, Text, Text, Text> {
     protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
         int docCount = 0;
 
-        // Instead of using an iterator, we can directly loop over the values to count the documents
+        // Iterate through the values to count the number of documents
         for (Text value : values) {
-            docCount++;  // Simply count the number of documents
+            docCount++;  // We are counting the number of documents, no need to use 'value'
         }
 
         // Compute IDF using log10(N / DF), assuming N = 10 documents
-        double idf = Math.log10(10.0 / docCount);  // DF is the docCount
+        double idf = Math.log10(10.0 / docCount);  // DF is the document count (docCount)
 
         // Set the result as the IDF value
         result.set(String.valueOf(idf));
