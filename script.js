@@ -1,104 +1,55 @@
 Device,Energy
-Fridge,100
-TV,50
-Fridge,120
-Washing Machine,200
-Fridge,130
-Microwave,60
-Dishwasher,150
-TV,80
-Oven,300
-Fridge,110
-Fridge,105
-Washing Machine,220
-TV,70
-Microwave,55
-Dishwasher,145
-Oven,310
-Fridge,125
-Microwave,70
-TV,65
-Fridge,115
-Washing Machine,210
-Dishwasher,160
-TV,75
-Microwave,65
-Oven,320
-Fridge,140
+Fridge,150
 TV,60
-Dishwasher,155
-Washing Machine,230
-Microwave,80
-TV,85
-Fridge,130
-Fridge,95
-Oven,280
-Washing Machine,240
+Washing Machine,180
+Microwave,70
+Dishwasher,130
+Oven,250
+Fridge,160
 TV,55
+Washing Machine,190
 Microwave,75
-Dishwasher,165
-Fridge,135
-Oven,290
-TV,90
-Microwave,60
-Dishwasher,150
-Washing Machine,250
-Fridge,120
-Microwave,50
-Dishwasher,170
-TV,100
-Fridge,110
-Washing Machine,260
-TV,95
-Microwave,85
 Dishwasher,140
-Oven,330
-Fridge,125
-TV,80
-Microwave,75
-Dishwasher,160
-Fridge,105
-Washing Machine,220
-Dishwasher,180
-Microwave,55
+Oven,260
+Fridge,170
 TV,70
-Fridge,130
-Oven,340
-Washing Machine,210
-Microwave,60
-Dishwasher,175
-TV,75
-Fridge,140
-Washing Machine,230
-Oven,300
-Microwave,90
-Fridge,115
-TV,50
-Dishwasher,165
 Washing Machine,200
-Fridge,100
 Microwave,80
-Dishwasher,155
-TV,60
-Washing Machine,240
-Fridge,120
-Oven,280
-Microwave,65
 Dishwasher,150
-Fridge,125
-TV,90
-Washing Machine,230
-Microwave,75
-Dishwasher,145
-Fridge,110
-Oven,310
-TV,55
-Microwave,50
-Dishwasher,175
-Fridge,130
-TV,85
+Oven,270
+Fridge,180
+TV,65
 Washing Machine,210
-Microwave,70
+Microwave,85
 Dishwasher,160
+Oven,280
+Fridge,190
+TV,75
+Washing Machine,220
+Microwave,90
+Dishwasher,170
 Oven,290
-Fridge,115
+Fridge,200
+TV,80
+Washing Machine,230
+Microwave,95
+Dishwasher,180
+Oven,300
+Fridge,210
+TV,85
+Washing Machine,240
+Microwave,100
+Dishwasher,190
+Oven,310
+Fridge,220
+TV,90
+Washing Machine,250
+Microwave,110
+Dishwasher,200
+Oven,320
+Fridge,230
+TV,95
+Washing Machine,260
+Microwave,120
+Dishwasher,210
+Oven,330
